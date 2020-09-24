@@ -1,6 +1,12 @@
-NVIDIA GEFORCE Graphics Card: # Title of the item to watch
+NVIDIA GEFORCE 3080 Graphics Card: # Title of the item to watch
   - url: https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440
     watch-type: "button" # As of 0.0.1, supported types => button, link
-    notify-on: "appear" # Options - notify on whether the watch-type appears or disappears
+    notify-on: "disappear" # Options (appear, disappear) - notify on whether the watch-type appears or disappears
     text: "Sold Out" # The watch-type text content (i.e Add to Cart, Check out, etc.) NOTE: Text is case-sensitive
+
+  - url: https://www.nvidia.com/en-us/shop/geforce/gpu/?page=1&limit=9&locale=en-us&category=GPU&gpu=RTX%202070,RTX%203080&manufacturer=NVIDIA&gpu_filter=RTX%203090~0,RTX%203080~1,RTX%203070~0,TITAN%20RTX~0,RTX%202080%20Ti~0,RTX%202080%20SUPER~0,RTX%202070%20SUPER~0,RTX%202060%20SUPER~1,RTX%202060~0,GTX%201660%20Ti~0,GTX%201660%20SUPER~0,GTX%201660~0,GTX%201650%20SUPER~0,GTX%201650~0
+    watch-type: "link"
+    notify-on: "appear"
+    text: "Out Of Stock"
+
 

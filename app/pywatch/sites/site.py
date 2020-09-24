@@ -7,7 +7,7 @@ class NotifyOnType(Enum):
 
 
 class SiteWatchType(Enum):
-    LINK = "link",
+    LINK = "link"
     BUTTON = "button"
 
 

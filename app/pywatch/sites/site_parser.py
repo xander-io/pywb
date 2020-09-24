@@ -10,11 +10,13 @@ def _validate_yaml_entry(entry):
         if item not in entry:
             raise ValueError
 
-    if entry["watch-type"].lower() not in [i.value for i in SiteWatchType]:
-        raise ValueError
+    watch_type = entry["watch-type"].lower() 
+    if watch_type not in [i.value for i in SiteWatchType]:
+        raise ValueError("Watch type '{watch_type}' is invalid".format(watch_type=watch_type))
 
-    if entry["notify-on"].lower() not in [i.value for i in NotifyOnType]:
-        raise ValueError
+    notify_on = entry["notify-on"].lower()
+    if notify_on not in [i.value for i in NotifyOnType]:
+        raise ValueError("Notify on '{notify_on}' is invalid".format(notify_on=notify_on))
 
 
 def _yaml_entry_to_site(item_name, entry):
@@ -33,6 +35,5 @@ def parse(yaml_path):
             for entry in yaml_sites:
                 sites.append(_yaml_entry_to_site(item_name, entry))
         return sites
-    except (yaml.YAMLError, ValueError):
-        raise RuntimeError("""Unable to parse file at location {} -
-                                file is corrupt or syntax is incorrect".format(yaml_path)""")
+    except (yaml.YAMLError, ValueError) as e:
+        raise RuntimeError("Unable to parse file at location '{path}'. {error}".format(path=yaml_path, error=str(e)))
