@@ -1,0 +1,6 @@
+NVIDIA GEFORCE Graphics Card: # Title of the item to watch
+  - url: https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440
+    watch-type: "button" # As of 0.0.1, supported types => button, link
+    notify-on: "appear" # Options - notify on whether the watch-type appears or disappears
+    text: "Sold Out" # The watch-type text content (i.e Add to Cart, Check out, etc.) NOTE: Text is case-sensitive
+
