@@ -45,7 +45,8 @@ class Chrome(BaseBrowser):
         for proc in psutil.process_iter():
             if proc.name() == _CHROME_DRIVER_NAME:
                 while proc.is_running():
-                    logger.debug("Found a stale chrome driver process... KILLING!")
+                    logger.debug(
+                        "Found a stale chrome driver process... KILLING!")
                     proc.terminate()
                     sleep(0.1)
 

@@ -61,7 +61,8 @@ class Watcher(Thread):
                 element_baseline = self._evaluate_baseline(site, n_elements)
                 # Unable to track changes if a baseline is not established
                 if element_baseline is None:
-                    logger.warning("Skipping tracking '{url}'...".format(url=site_url))
+                    logger.warning(
+                        "Skipping tracking '{url}'...".format(url=site_url))
                     continue
 
             if (n_elements > element_baseline and site_notify_type == NotifyOnType.APPEAR) or \
