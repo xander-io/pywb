@@ -1,3 +1,4 @@
+from os import environ
 import logging
 
 
@@ -6,7 +7,7 @@ def _init_logging():
         "[%(asctime)s - %(levelname)s] %(message)s")
 
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG if "PYWW_DEBUG" in environ else logging.INFO)
 
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)

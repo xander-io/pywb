@@ -1,6 +1,6 @@
 import yaml
-from ..logger import logger
-from .site import NotifyOnType, SiteWatchType, Site
+from pyww.core.logger import logger
+from pyww.sites.site import NotifyOnType, SiteWatchType, Site
 
 _REQUIRED_ENTRY_ITEMS = ["url", "watch-type", "notify-on", "text"]
 
