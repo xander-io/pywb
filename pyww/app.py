@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from pyww.browser.chrome import Chrome
 from pyww.core.watcher import Watcher
-from pyww import VERSION
+from pyww import VERSION, ENVIRON_DEBUG_KEY
 from pyww.core.logger import logger
 from pyww.sites import site_parser
 from pyww.core.notifier import Notifier
@@ -57,7 +57,8 @@ def run():
     signal.signal(signal.SIGINT, _shut_down)
 
     try:
-        g_watcher = Watcher(Chrome(site_parser.parse(args.sites), headless=("PYWW_DEBUG" not in environ)),
+        g_watcher = Watcher(Chrome(site_parser.parse(args.sites),
+                                   headless=(ENVIRON_DEBUG_KEY not in environ)),
                             args.interval,
                             Notifier(remote_notifications=args.remote_notifications))
         g_watcher.start()

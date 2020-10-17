@@ -1,4 +1,5 @@
 from os import environ
+from pyww import ENVIRON_DEBUG_KEY
 import logging
 
 
@@ -7,7 +8,8 @@ def _init_logging():
         "[%(asctime)s - %(levelname)s] %(message)s")
 
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG if "PYWW_DEBUG" in environ else logging.INFO)
+    logger.setLevel(logging.DEBUG
+                    if ENVIRON_DEBUG_KEY in environ else logging.INFO)
 
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
