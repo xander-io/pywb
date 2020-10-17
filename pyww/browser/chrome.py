@@ -63,6 +63,13 @@ class Chrome(BaseBrowser):
             else:
                 self._driver.execute_script(
                     "window.open('{url}', '_blank');".format(url=site.get_url()))
+
+            # Make sure the driver window handles are updated before loading another site
+            expected_handles = i + 1
+            while len(self._driver.window_handles) != expected_handles:
+                logger.debug("Waiting for {expected_handles} window handles from driver...".format(
+                    expected_handles=expected_handles))
+                sleep(0.1)
         self._switch_to_main_window()
         return True
 

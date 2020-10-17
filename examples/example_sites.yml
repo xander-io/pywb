@@ -1,10 +1,15 @@
 NVIDIA GEFORCE 3080 Graphics Card: # Title of the item to watch
   - url: https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440
     watch-type: "button" # As of 0.0.1, supported types => button, link, text
-    notify-on: "appear" # Options (appear, disappear) - notify on whether the watch-type appears or disappears
+    notify-on: "disappear" # Options (appear, disappear) - notify on whether the watch-type appears or disappears
     text: "Sold Out" # The watch-type text content (i.e Add to Cart, Check out, etc.) NOTE: Text is case-insensitive
 
   - url: https://www.microcenter.com/product/628318/asus-geforce-rtx-3080-tuf-gaming-overclocked-triple-fan-10gb-gddr6x-pcie-40-graphics-card?storeid=071
     watch-type: "text"
     notify-on: "disappear"
     text: "sold out"
+
+  - url: https://www.amazon.com/ASUS-Graphics-DisplayPort-Military-Grade-Certification/dp/B08HH5WF97?ref_=ast_sto_dp
+    watch-type: "text"
+    notify-on: "disappear"
+    text: "currently unavailable" 
