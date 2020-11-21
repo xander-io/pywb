@@ -9,11 +9,40 @@ from pyww.core.notifier import Notifier
 from pyww.core.watcher import Watcher
 from pyww.sites import site_parser
 
-g_watcher = None
 
+class _App():
+    def __init__(self, args):
+        self._watcher = None
+        self._interval = args.interval
+        self._sites = args.sites
+        self._remote_notifications = args.remote_notifications
 
-def _display_ascii():
-    ascii = r"""
+    def start(self):
+        signal.signal(signal.SIGINT, self._shut_down)
+        logger.info(_App.get_ascii_art())
+        try:
+            self._watcher = Watcher(Chrome(site_parser.parse(self._sites),
+                                           headless=(ENVIRON_DEBUG_KEY not in environ)),
+                                    self._interval,
+                                    Notifier(remote_notifications=self._remote_notifications))
+            self._watcher.start()
+        except ValueError as err:
+            logger.error(str(err))
+        finally:
+            if self._watcher:
+                self._wait_on_watcher()
+
+    def _shut_down(self, *_):
+        logger.info("Shutdown signaled for pyww...")
+        self._watcher.shut_down()
+
+    def _wait_on_watcher(self):
+        while self._watcher.is_alive():
+            self._watcher.join(timeout=1)
+
+    @staticmethod
+    def get_ascii_art():
+        ascii_art = r"""
  ________  ___    ___ ___       __   ___       __      
 |\   __  \|\  \  /  /|\  \     |\  \|\  \     |\  \    
 \ \  \|\  \ \  \/  / | \  \    \ \  \ \  \    \ \  \   
@@ -23,8 +52,8 @@ def _display_ascii():
     \|__||\___/ /        \|____________|\|____________|
          \|___|/                                                   
                (Version: {version})                                                                   
-""".format(version=VERSION)
-    logger.info(ascii)
+        """.format(version=VERSION)
+        return ascii_art
 
 
 def _parse_args():
@@ -38,33 +67,6 @@ def _parse_args():
     return parser.parse_args()
 
 
-def _shut_down(s, f):
-    global g_watcher
-    if g_watcher:
-        logger.info("Shutdown signaled for pyww...")
-        g_watcher.shut_down()
-
-
-def _wait_on_watcher():
-    global g_watcher
-    while g_watcher.is_alive():
-        g_watcher.join(timeout=1)
-
-
 def run():
-    global g_watcher
-    args = _parse_args()
-    _display_ascii()
-    signal.signal(signal.SIGINT, _shut_down)
-
-    try:
-        g_watcher = Watcher(Chrome(site_parser.parse(args.sites),
-                                   headless=(ENVIRON_DEBUG_KEY not in environ)),
-                            args.interval,
-                            Notifier(remote_notifications=args.remote_notifications))
-        g_watcher.start()
-    except Exception as e:
-        logger.error(str(e))
-    finally:
-        if g_watcher:
-            _wait_on_watcher()
+    app = _App(_parse_args())
+    app.start()
