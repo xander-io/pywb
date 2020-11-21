@@ -24,10 +24,9 @@ class Notifier(object):
             remote_notify_info = remote_notify_info[:remote_notify_info.index(
                 "Or scan this QR code")]
 
-        logger.info("\n\n****************** REMOTE PUSH NOTIFICATIONS ********************\n" +
-                    remote_notify_info +
+        logger.info("\n\n****************** REMOTE PUSH NOTIFICATIONS ********************\n%s" +
                     "\nNOTE: iOS and Safari NOT supported\n" +
-                    "*****************************************************************\n")
+                    "*****************************************************************\n", remote_notify_info)
 
     def notify(self, title, message, link):
         if self._remote_notifier:

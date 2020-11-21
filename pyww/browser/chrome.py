@@ -31,8 +31,8 @@ class Chrome(BaseBrowser):
 
         for i in range(len(self._sites)):
             site = self._sites[i]
-            logger.info("Loading '{url}' for '{item}'".format(
-                url=site.get_url(friendly=True), item=site.get_item_name()))
+            logger.info("Loading '%s' for '%s'",
+                        site.get_url(friendly=True), site.get_item_name())
             if i == 0:
                 self._driver.get(site.get_url())
             else:
@@ -42,8 +42,8 @@ class Chrome(BaseBrowser):
             # Make sure the driver window handles are updated before loading another site
             expected_handles = i + 1
             while len(self._driver.window_handles) != expected_handles:
-                logger.debug("Waiting for {expected_handles} window handles from driver...".format(
-                    expected_handles=expected_handles))
+                logger.debug("Waiting for %d window handles from driver...",
+                             expected_handles)
                 sleep(0.1)
         self._switch_to_main_window()
         return True
