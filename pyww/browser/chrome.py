@@ -1,6 +1,5 @@
 import os
 import signal
-import subprocess
 from pathlib import Path
 from time import sleep
 
