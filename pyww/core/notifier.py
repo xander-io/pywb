@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from notify_run import Notify as RemoteNotify
 from notifypy import Notify as LocalNotify
@@ -18,15 +17,20 @@ class Notifier(object):
         else:
             self._remote_notifier = None
 
-    def _display_remote_notify_info(self, remote_notify_info):
+    @classmethod
+    def _display_remote_notify_info(cls, remote_notify_info):
         if os.name == 'nt':
             # Windows cmd/powershell does not display QR code properly - stripping it off
             remote_notify_info = remote_notify_info[:remote_notify_info.index(
                 "Or scan this QR code")]
 
-        logger.info("\n\n****************** REMOTE PUSH NOTIFICATIONS ********************\n%s" +
-                    "\nNOTE: iOS and Safari NOT supported\n" +
-                    "*****************************************************************\n", remote_notify_info)
+        logger.info(
+            """\n\n****************** REMOTE PUSH NOTIFICATIONS ********************\n
+            %s
+            \nNOTE: iOS and Safari NOT supported
+            \n*****************************************************************\n""",
+            remote_notify_info
+        )
 
     def notify(self, title, message, link):
         if self._remote_notifier:
