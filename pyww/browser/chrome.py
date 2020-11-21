@@ -1,18 +1,15 @@
 import os
 import signal
 import subprocess
-import psutil
 from pathlib import Path
 from time import sleep
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import NoSuchElementException
+
+import psutil
 from pyww.browser.base_browser import BaseBrowser
 from pyww.core.logger import logger
-
-_CHROME_DRIVER_NAME = "chromedriver.exe"
-_CHROME_DRIVER_PATH = os.path.join(
-    str(Path.home()), "drivers", _CHROME_DRIVER_NAME)
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.chrome.options import Options
 
 
 class Chrome(BaseBrowser):
@@ -26,29 +23,8 @@ class Chrome(BaseBrowser):
         driver_options.add_argument('--ignore-ssl-errors')
         driver_options.add_argument("--log-level=OFF")
 
-        self._kill_stale_driver()
-        self._driver_process = subprocess.Popen(_CHROME_DRIVER_PATH,
-                                                shell=False,
-                                                stdout=subprocess.DEVNULL,
-                                                stdin=subprocess.DEVNULL,
-                                                creationflags=(
-                                                    subprocess.CREATE_NO_WINDOW)
-                                                )
-
-        # Using remote to spawn my own driver process I can control
-        self._driver = webdriver.Remote(
-            "http://127.0.0.1:9515",
-            desired_capabilities=webdriver.DesiredCapabilities.CHROME,
+        self._driver = webdriver.Chrome(
             options=driver_options)
-
-    def _kill_stale_driver(self):
-        for proc in psutil.process_iter():
-            if proc.name() == _CHROME_DRIVER_NAME:
-                while proc.is_running():
-                    logger.debug(
-                        "Found a stale chrome driver process... KILLING!")
-                    proc.terminate()
-                    sleep(0.1)
 
     def load_sites(self):
         if not self._sites:
@@ -104,7 +80,6 @@ class Chrome(BaseBrowser):
 
     def close(self):
         self._driver.quit()
-        self._driver_process.kill()
 
     def _switch_to_main_window(self):
         self._driver.switch_to_window(self._driver.window_handles[0])

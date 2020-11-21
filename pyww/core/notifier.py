@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
-from notifypy import Notify as LocalNotify
+
 from notify_run import Notify as RemoteNotify
+from notifypy import Notify as LocalNotify
 from pyww.core.logger import logger
 
 

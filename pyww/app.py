@@ -1,12 +1,13 @@
-from argparse import ArgumentParser
-from pyww.browser.chrome import Chrome
-from pyww.core.watcher import Watcher
-from pyww import VERSION, ENVIRON_DEBUG_KEY
-from pyww.core.logger import logger
-from pyww.sites import site_parser
-from pyww.core.notifier import Notifier
-from os import environ
 import signal
+from argparse import ArgumentParser
+from os import environ
+
+from pyww import ENVIRON_DEBUG_KEY, VERSION
+from pyww.browser.chrome import Chrome
+from pyww.core.logger import logger
+from pyww.core.notifier import Notifier
+from pyww.core.watcher import Watcher
+from pyww.sites import site_parser
 
 g_watcher = None
 
