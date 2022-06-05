@@ -1,5 +1,9 @@
+from multiprocessing.sharedctypes import Value
 from threading import ThreadError
+from pywb import ENVIRON_DEBUG_KEY
+from pywb.core.logger import logger
 from pywb.core.runner import RunConfig, Runner
+from pywb.surfing.chrome import Chrome
 
 
 class RunManager(object):
@@ -10,16 +14,41 @@ class RunManager(object):
         self._shutdown = False
 
     def delegate_and_wait(self, actions, plugins) -> None:
-        # TODO: Delegate tasking to Runners
-        # Chrome(headless=(ENVIRON_DEBUG_KEY not in environ)
-        run_cfg = RunConfig.copy(self._common_run_cfg)
-        x = Runner()
-        x.start()
-        self._runners.append(x)
+        self._actions_to_runners(actions, plugins)
+        self._start_runners()
 
-        # Waiting for runners
+        # Waiting for runners to finish executing
         self._wait_for_runners()
-        print("MANAGER OUT!")
+        logger.info("All runners completed exectuion... tearing down")
+
+    def _start_runners(self) -> None:
+        for runner in self._runners:
+            runner.start()
+
+    def _actions_to_runners(self, actions, plugins) -> None:
+        runs = {}
+
+        # Merge actions into plugins - One plugin instance for multiple actions
+        for action in actions:
+            if action.plugin not in plugins:
+                raise ValueError(
+                    "Unable to find plugin %s from loaded external plugins" % action.plugin)
+
+            if action.plugin not in runs:
+                # Create a new run config with the action
+                new_cfg = RunConfig.from_run_config(self._common_run_cfg)
+                new_cfg.actions = [action]
+                new_cfg.browser = Chrome(headless=ENVIRON_DEBUG_KEY)
+                # Add the action to existing run configs
+                runs[action.plugin] = (plugins[action.plugin], new_cfg)
+            else:
+                # Append action to existing run config
+                _, cfg = runs[action.plugin]
+                cfg.actions.append(action)
+
+        # Create runners
+        self._runners = [Runner(plugin, run_cfg)
+                         for _, (plugin, run_cfg) in runs.items()]
 
     def _wait_for_runners(self, timeout=None) -> None:
         rogue_plugin = False

@@ -5,27 +5,26 @@ from pywb.core.logger import logger
 
 
 class RunConfig(object):
-    def __init__(self, action=None, plugin=None, interval=None, notifier=None) -> None:
-        self.action = action
-        self.plugin = plugin
+    def __init__(self, action=None, interval=None, notifier=None, browser=None) -> None:
+        self.actions = action
         self.interval = interval
         self.notifier = notifier
+        self.browser = browser
 
-    @staticmethod
-    def copy(run_cfg) -> 'RunConfig':
-        cfg_copy = RunConfig()
-        cfg_copy.__dict__.update(run_cfg.__dict__)
-        return cfg_copy
+    @classmethod
+    def from_run_config(cls, run_cfg) -> 'RunConfig':
+        new_cfg = cls()
+        new_cfg.__dict__.update(run_cfg.__dict__)
+        return new_cfg
 
 
 class Runner(Thread):
-    def __init__(self):
+    def __init__(self, plugin, run_cfg) -> None:
         logger.debug("Initializing runner")
         super().__init__()
         self._shutdown = False
-        # self._browser = browser
-        # self._interval = interval
-        # self._notifier = notifier
+        self._run_cfg = run_cfg
+        self._plugin = plugin()
 
     def _teardown(self):
         logger.debug("Tearing down runner")
@@ -50,13 +49,10 @@ class Runner(Thread):
 
     def run(self):
         try:
-            while (not self._shutdown):
-                print("Running...")
-                sleep(10)
-
-            print("Runner is leaving now")
-            # self._run_action()
-            # self._teardown()
+            self._plugin.initialize(self._run_cfg.actions,
+                                    self._run_cfg.browser, self._run_cfg.interval)
+            logger.info("\n" + self._plugin.ascii())
+            self._plugin.start()
         except Exception as e:
             logger.error(str(e))
 
