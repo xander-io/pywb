@@ -38,7 +38,6 @@ class RunManager(object):
                 # Create a new run config with the action
                 new_cfg = RunConfig.from_run_config(self._common_run_cfg)
                 new_cfg.actions = [action]
-                new_cfg.browser = Chrome(headless=ENVIRON_DEBUG_KEY)
                 # Add the action to existing run configs
                 runs[action.plugin] = (plugins[action.plugin], new_cfg)
             else:

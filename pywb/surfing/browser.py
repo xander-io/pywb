@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 
 from pywb.core.logger import logger
 
+BrowserType = Enum("BrowserType", ["CHROME"])
 
 class Browser(ABC):
 

@@ -1,11 +1,15 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from genericpath import isfile
 from importlib.util import module_from_spec, spec_from_file_location
-from os import walk
-from os.path import isdir, basename, join
+from os import environ, walk
+from os.path import basename, isdir, join
 from sys import modules
+
+from genericpath import isfile
+from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
+from pywb.surfing.browser import BrowserType
+from pywb.surfing.chrome import Chrome
 
 
 def load_plugins(plugin_path) -> list:
@@ -34,26 +38,31 @@ def load_plugins(plugin_path) -> list:
                                      "Ensure module has attribute 'plugin' defined" % path)
     return plugins
 
-class PluginError(Enum):
-    PLUGIN_SUCCESS = 0
-    PLUGIN_FAILURE = 1
+
+PluginError = Enum("PluginError", ["PLUGIN_SUCCESS", "PLUGIN_ERROR"], start=0)
+
 
 class Plugin(ABC):
     def __init__(self, name, version) -> None:
         super().__init__()
         self.name = name
         self.version = version
-        self._actions = self._browser = self._interval = None
+        self._actions = self._interval = self._notifier = self._browser = None
 
     def ascii(self) -> str:
         return "=========== " + self.name.upper() + " (" + self.version + ")" + " ==========="
 
     @abstractmethod
-    def initialize(self, actions, browser, interval, notifier) -> PluginError:
+    def initialize(self, actions, interval, notifier, browser_type) -> PluginError:
         self._actions = actions
-        self._browser = browser
         self._interval = interval
         self._notifier = notifier
+
+        if browser_type == BrowserType.CHROME:
+            self._browser = Chrome(headless=not (ENVIRON_DEBUG_KEY in environ))
+        else:
+            raise ValueError("Unsupported browser type '%s'" %
+                             browser_type.name.lower())
 
     @abstractmethod
     def start(self) -> PluginError:

@@ -19,6 +19,7 @@ from pywb.core.notifier import Notifier
 from pywb.core.run_manager import RunManager
 from pywb.core.plugin import load_plugins
 from pywb.core.runner import RunConfig
+from pywb.surfing.browser import BrowserType
 
 
 class _App():
@@ -41,9 +42,10 @@ class _App():
             the args from argparse
         """
 
-        self._notifier = Notifier(remote_notifications=args.remote_notifications)
+        self._notifier = Notifier(
+            remote_notifications=args.remote_notifications)
         self._run_manager = RunManager(RunConfig(interval=args.interval,
-                                                 notifier=self._notifier))
+                                                 notifier=self._notifier, browser_type=BrowserType.CHROME))
         self._actions_path = args.actions
         self._plugins_path = args.plugins
 
