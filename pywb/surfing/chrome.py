@@ -18,8 +18,8 @@ class Chrome(Browser):
             options=driver_options))
 
     def load_urls(self, urls):
-        for i in range(len(url)):
-            url = url[i]
+        for i in range(len(urls)):
+            url = urls[i]
             logger.info("Loading '%s'", url)
             if i == 0:
                 self._driver.get(url)

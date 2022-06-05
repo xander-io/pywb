@@ -1,8 +1,5 @@
-from enum import Enum
 from typing import Tuple
-from urllib.parse import urlsplit
 
-from pywb.core.logger import logger
 from yaml import YAMLError, safe_load
 
 _REQUIRED_ENTRY_ITEMS = ["plugin", "urls"]
