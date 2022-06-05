@@ -60,7 +60,7 @@ class _App():
 
         signal(SIGINT, self._shut_down)
         logger.info(generate_ascii_art())
-        logger.info(self._notifier.notify_info_str())
+        logger.info(self._notifier.notify_info())
         plugins = load_plugins(self._plugins_path)
         actions = parse_actions(self._actions_path)
         if plugins and actions:

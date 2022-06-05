@@ -8,30 +8,35 @@ from pywb.core.logger import logger
 class Notifier(object):
     def __init__(self, remote_notifications=False):
         self._local_notifier = LocalNotify()
+        self._remote_notify_info = None
         if remote_notifications:
-            self._remote_notifier = RemoteNotify()
+            self._register_remote_endpoint()
         else:
             self._remote_notifier = None
 
-    def notify_info_str(self) -> str:
-        notify_info = "\n\n************************** NOTIFICATIONS ****************************\n"
-        notify_info += "Local Notifications: ON\n"
-        notify_info += ("Remote Notifications: %s" % ("ON" if self._remote_notifier else "OFF"))
+    def _register_remote_endpoint(self):
+        if not self._remote_notify_info:
+            self._remote_notifier = RemoteNotify()
 
-        if self._remote_notifier:
             logger.info(
                 "Registering a new Remote Push Notification (RPN) endpoint")
-            remote_notify_info = str(self._remote_notifier.register())
+            self._remote_notify_info = str(self._remote_notifier.register())
             if os.name == 'nt':
                 # Windows cmd/powershell does not display QR code properly - stripping it off
-                remote_notify_info = remote_notify_info[:remote_notify_info.index(
+                self._remote_notify_info = self._remote_notify_info[:self._remote_notify_info.index(
                     "Or scan this QR code")]
 
+    def notify_info(self) -> str:
+        notify_info = "\n\n************************** NOTIFICATIONS ****************************\n"
+        notify_info += "Local Notifications: ON\n"
+        notify_info += ("Remote Notifications: %s" %
+                        ("ON" if self._remote_notifier else "OFF"))
 
-            notify_info += "\n\nRemote " + remote_notify_info + \
+        if self._remote_notifier:
+            notify_info += "\n\nRemote " + self._remote_notify_info + \
                 "\nNOTE: Remote notifications NOT supported for iOS and Safari"
-                
-        notify_info += "\n*********************************************************************\n" 
+
+        notify_info += "\n*********************************************************************\n"
         return notify_info
 
     def notify(self, title, message, link):
