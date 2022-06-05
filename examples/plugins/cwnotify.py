@@ -7,8 +7,8 @@ class CWNotify(Plugin):
     def __init__(self) -> None:
         super().__init__(__class__.__name__, self.VERSION)
 
-    def initialize(self, actions, browser, interval) -> None:
-        return super().initialize(actions, browser, interval)
+    def initialize(self, actions, browser, interval, notifier) -> None:
+        return super().initialize(actions, browser, interval, notifier)
 
     def start(self):
         pass

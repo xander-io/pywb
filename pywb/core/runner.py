@@ -49,8 +49,8 @@ class Runner(Thread):
 
     def run(self):
         try:
-            self._plugin.initialize(self._run_cfg.actions,
-                                    self._run_cfg.browser, self._run_cfg.interval)
+            self._plugin.initialize(self._run_cfg.actions, self._run_cfg.browser,
+                                    self._run_cfg.interval, self._run_cfg.notifier)
             logger.info("\n" + self._plugin.ascii())
             self._plugin.start()
         except Exception as e:

@@ -49,10 +49,11 @@ class Plugin(ABC):
         return "=========== " + self.name.upper() + " (" + self.version + ")" + " ==========="
 
     @abstractmethod
-    def initialize(self, actions, browser, interval) -> PluginError:
+    def initialize(self, actions, browser, interval, notifier) -> PluginError:
         self._actions = actions
         self._browser = browser
         self._interval = interval
+        self._notifier = notifier
 
     @abstractmethod
     def start(self) -> PluginError:
