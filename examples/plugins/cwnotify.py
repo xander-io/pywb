@@ -7,13 +7,13 @@ class CWNotify(Plugin):
     def __init__(self) -> None:
         super().__init__(__class__.__name__, self.VERSION)
 
+    def initialize(self, actions, browser, interval) -> None:
+        return super().initialize(actions, browser, interval)
+
     def start(self):
         pass
 
-    def pause(self):
-        pass
-
-    def shutdown(self):
+    def stop(self):
         pass
 
 

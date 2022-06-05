@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 from genericpath import isfile
 from importlib.util import module_from_spec, spec_from_file_location
 from os import walk
@@ -33,21 +34,30 @@ def load_plugins(plugin_path) -> list:
                                      "Ensure module has attribute 'plugin' defined" % path)
     return plugins
 
+class PluginError(Enum):
+    PLUGIN_SUCCESS = 0
+    PLUGIN_FAILURE = 1
 
 class Plugin(ABC):
     def __init__(self, name, version) -> None:
         super().__init__()
         self.name = name
         self.version = version
+        self._actions = self._browser = self._interval = None
+
+    def ascii(self) -> str:
+        return "=========== " + self.name.upper() + " (" + self.version + ")" + " ==========="
 
     @abstractmethod
-    def start(self):
+    def initialize(self, actions, browser, interval) -> PluginError:
+        self._actions = actions
+        self._browser = browser
+        self._interval = interval
+
+    @abstractmethod
+    def start(self) -> PluginError:
         pass
 
     @abstractmethod
-    def pause(self):
-        pass
-
-    @abstractmethod
-    def shutdown(self):
+    def stop(self) -> PluginError:
         pass
