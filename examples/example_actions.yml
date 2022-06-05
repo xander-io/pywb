@@ -1,0 +1,17 @@
+NVIDIA GEFORCE 3080 Graphics Card: # Title to notify
+  - plugin: CWNotify
+    urls: 
+      - https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440
+      - https://www.microcenter.com/product/628318/asus-geforce-rtx-3080-tuf-gaming-overclocked-triple-fan-10gb-gddr6x-pcie-40-graphics-card?storeid=071
+    watch-type: "button" # As of 0.0.1, supported types => button, link, text
+    notify-on: "disappear" # Options (appear, disappear) - notify on whether the watch-type appears or disappears
+    text: "Sold Out" # The watch-type text content (i.e Add to Cart, Check out, etc.) NOTE: Text is case-insensitive
+
+eBay Low Stock Alert: # Title to notify
+  - plugin: CWNotify
+    urls: 
+      - https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440
+      - https://www.microcenter.com/product/628318/asus-geforce-rtx-3080-tuf-gaming-overclocked-triple-fan-10gb-gddr6x-pcie-40-graphics-card?storeid=071
+    watch-type: "button" # As of 0.0.1, supported types => button, link, text
+    notify-on: "disappear" # Options (appear, disappear) - notify on whether the watch-type appears or disappears
+    text: "Sold Out" # The watch-type text content (i.e Add to Cart, Check out, etc.) NOTE: Text is case-insensitive

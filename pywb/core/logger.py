@@ -1,7 +1,7 @@
 import logging
 from os import environ
 
-from pyww import ENVIRON_DEBUG_KEY
+from pywb import ENVIRON_DEBUG_KEY
 
 
 def _init_logging():
