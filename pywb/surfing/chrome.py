@@ -3,19 +3,20 @@ from time import sleep
 
 from pywb.core.logger import logger
 from pywb.surfing.browser import Browser
-from selenium import webdriver
+from selenium.webdriver import Chrome as SeleniumChrome
+from selenium.webdriver import ChromeOptions
 
 
 class Chrome(Browser):
+
     def __init__(self, headless=True):
-        driver_options = webdriver.ChromeOptions()
+        driver_options = ChromeOptions()
         if headless:
             driver_options.add_argument("--headless")
         driver_options.add_argument('--ignore-certificate-errors')
         driver_options.add_argument('--ignore-ssl-errors')
-        driver_options.add_argument("--log-level=OFF")
-        super().__init__(webdriver.Chrome(
-            options=driver_options))
+        driver_options.add_argument("--log-level=3")
+        super().__init__(SeleniumChrome(options=driver_options))
 
     def load_urls(self, urls):
         for i in range(len(urls)):

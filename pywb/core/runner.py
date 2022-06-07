@@ -38,12 +38,19 @@ class Runner(Thread):
 
     def run(self):
         try:
+
             self._plugin.initialize(self._run_cfg.actions, self._run_cfg.interval,
                                     self._run_cfg.notifier, self._run_cfg.browser_type)
             logger.info("\n" + self._plugin.ascii())
             self._plugin.start()
         except Exception as e:
-            logger.error(str(e))
+            # Generically catching errors here as a catch all for any exceptions thrown by the plugin
+            # Only display errors that matter to the user
+            if (self._err_from_plugin(e)):
+                logger.error(str(e))
+
+    def _err_from_plugin(self, err):
+        return not "selenium" in err.__module__ and not "urllib3" in err.__module__
 
     def shut_down(self):
         self._shutdown = True
