@@ -44,13 +44,17 @@ class Runner(Thread):
             logger.info("\n" + self._plugin.ascii())
             self._plugin.start()
         except Exception as e:
-            # Generically catching errors here as a catch all for any exceptions thrown by the plugin
-            # Only display errors that matter to the user
-            if (self._err_from_plugin(e)):
-                logger.error(str(e))
+            # Generically catching errors as a catch-all for any exceptions th2rown by the plugin
+            if (self._err_from_driver(e)):
+                logger.debug(self._plugin.name + ": " + str(e))
+            else:
+                logger.error(self._plugin.name + ": " + str(e))
 
-    def _err_from_plugin(self, err):
-        return not "selenium" in err.__module__ and not "urllib3" in err.__module__
+    def _err_from_driver(self, err):
+        # Common errors associated with the driver are from selenium and urllib3
+        # Generically identifying them here - otherwise except statement would be massive...
+        return hasattr(err, "__module__") and \
+            ("selenium" in err.__module__ or "urllib3" in err.__module__)
 
     def shut_down(self):
         self._shutdown = True
