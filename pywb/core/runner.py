@@ -21,9 +21,8 @@ class RunConfig(object):
 
 class Runner(Thread):
     def __init__(self, plugin, run_cfg) -> None:
-        logger.debug("Initializing runner")
+        logger.debug("Initializing runner...")
         super().__init__()
-        self._shutdown = False
         self._run_cfg = run_cfg
         self._plugin = plugin()
 
@@ -38,8 +37,8 @@ class Runner(Thread):
 
     def run(self):
         try:
-
-            self._plugin.initialize(self._run_cfg.actions, self._run_cfg.interval,
+            self._plugin.validate_actions(self._run_cfg.actions)
+            self._plugin.init_run(self._run_cfg.actions, self._run_cfg.interval,
                                     self._run_cfg.notifier, self._run_cfg.browser_type)
             logger.info("\n" + self._plugin.ascii())
             self._plugin.start()
@@ -57,4 +56,4 @@ class Runner(Thread):
             ("selenium" in err.__module__ or "urllib3" in err.__module__)
 
     def shut_down(self):
-        self._shutdown = True
+        self._plugin.stop()
