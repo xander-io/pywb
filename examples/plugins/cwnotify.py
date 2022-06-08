@@ -2,21 +2,22 @@ from time import sleep
 from pywb.core.logger import logger
 from pywb.core.plugin import Plugin
 
-
 class CWNotify(Plugin):
     VERSION = "0.1"
 
     def __init__(self) -> None:
         super().__init__(__class__.__name__, self.VERSION)
 
-    def initialize(self, actions, interval, notifier, browser_type) -> None:
-        return super().initialize(actions, interval, notifier, browser_type)
+    def validate_actions(self, actions) -> None:
+        return super().validate_actions()
 
-    def start(self):
+    def init_run(self, actions, interval, notifier, browser_type) -> None:
+        return super().init_run(actions, interval, notifier, browser_type)
+
+    def start(self) -> None:
+        super().start()
         logger.info("I am starting this plugin up...")
-        self._browser.load_urls(["https://www.google.com"])
-        sleep(10)
-
+        
         """
         sites_loaded = self._browser.load_urls()
         while sites_loaded and not self._shutdown:
@@ -26,8 +27,8 @@ class CWNotify(Plugin):
                 self._browser.refresh_sites()
         """
 
-    def stop(self):
-        pass
+    def stop(self) -> None:
+        return super().stop()
 
 
 plugin = CWNotify
