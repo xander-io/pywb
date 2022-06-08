@@ -62,14 +62,21 @@ class Plugin(ABC):
         self._actions = actions
         self._interval = interval
         self._notifier = notifier
+        self.__init_browser(browser_type)
+        
+        if not self._run_initialized:
+            self._run_initialized = True
 
+    def __init_browser(self, browser_type):
         if browser_type == BrowserType.CHROME:
             self._browser = Chrome(headless=(not ENVIRON_DEBUG_KEY in environ))
         else:
             raise ValueError("Unsupported browser type '%s'" %
                              browser_type.name.lower())
-        if not self._run_initialized:
-            self._run_initialized = True
+        urls = []
+        for action in self._actions:
+            urls += action.urls
+        self._browser.load_urls(urls)
 
     @abstractmethod
     def start(self) -> None:
