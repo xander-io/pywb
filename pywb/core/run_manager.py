@@ -19,7 +19,7 @@ class RunManager(object):
 
         # Waiting for runners to finish executing
         self._wait_for_runners()
-        logger.info("All runners completed exectuion... tearing down")
+        logger.info("Runners have completed execution... tearing down")
 
     def _start_runners(self) -> None:
         for runner in self._runners:
