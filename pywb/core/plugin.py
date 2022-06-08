@@ -47,6 +47,7 @@ class Plugin(ABC):
         super().__init__()
         self.name = name
         self.version = version
+        self._run_initialized = False
         self._actions = self._interval = self._notifier = self._browser = None
 
     def ascii(self) -> str:
@@ -67,10 +68,12 @@ class Plugin(ABC):
         else:
             raise ValueError("Unsupported browser type '%s'" %
                              browser_type.name.lower())
+        if not self._run_initialized:
+            self._run_initialized = True
 
     @abstractmethod
     def start(self) -> None:
-        pass
+        assert self._run_initialized, "Critical Error - Unable to start plugin. Run has not been initialized!"
 
     @abstractmethod
     def stop(self) -> None:
