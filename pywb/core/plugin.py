@@ -53,21 +53,25 @@ class Plugin(ABC):
         return "=========== " + self.name.upper() + " (" + self.version + ")" + " ==========="
 
     @abstractmethod
-    def initialize(self, actions, interval, notifier, browser_type) -> PluginError:
+    def validate_actions(self) -> None:
+        pass
+
+    @abstractmethod
+    def init_run(self, actions, interval, notifier, browser_type) -> None:
         self._actions = actions
         self._interval = interval
         self._notifier = notifier
 
         if browser_type == BrowserType.CHROME:
-            self._browser = Chrome(headless=not (ENVIRON_DEBUG_KEY in environ))
+            self._browser = Chrome(headless=(not ENVIRON_DEBUG_KEY in environ))
         else:
             raise ValueError("Unsupported browser type '%s'" %
                              browser_type.name.lower())
 
     @abstractmethod
-    def start(self) -> PluginError:
+    def start(self) -> None:
         pass
 
     @abstractmethod
-    def stop(self) -> PluginError:
+    def stop(self) -> None:
         pass
