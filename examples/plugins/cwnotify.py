@@ -18,14 +18,12 @@ class CWNotify(Plugin):
         super().start()
         logger.info("I am starting this plugin up...")
         
-        """
-        sites_loaded = self._browser.load_urls()
-        while sites_loaded and not self._shutdown:
-            self._track_changes(self._browser.scrape_sites_by_xpath())
+        while not self._shutdown:
+            self._track_changes(self._browser.scrape())
             self._sleep_on_interval()
             if not self._shutdown:
                 self._browser.refresh_sites()
-        """
+
 
     def stop(self) -> None:
         return super().stop()
@@ -55,12 +53,6 @@ def _evaluate_baseline(self, site, n_elements):
 """
 
 """
-def _sleep_on_interval(self):
-    logger.info("Waiting %ds before refresh", self._interval)
-    for _ in range(self._interval):
-        if self._shutdown:
-            break
-        sleep(1)
 
 def _track_changes(self, scrape_results):
     for site, n_elements in scrape_results:

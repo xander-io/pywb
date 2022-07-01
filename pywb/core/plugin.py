@@ -4,6 +4,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from os import environ, walk
 from os.path import basename, isdir, join
 from sys import modules
+from time import sleep
 
 from genericpath import isfile
 from pywb import ENVIRON_DEBUG_KEY
@@ -47,6 +48,7 @@ class Plugin(ABC):
         super().__init__()
         self.name = name
         self.version = version
+        self._shut_down = False
         self._run_initialized = False
         self._actions = self._interval = self._notifier = self._browser = None
 
@@ -84,4 +86,12 @@ class Plugin(ABC):
 
     @abstractmethod
     def stop(self) -> None:
-        pass
+        self._shut_down = True
+    
+    def _sleep_on_interval(self):
+        logger.info("Waiting %ds before refresh", self._interval)
+        for _ in range(self._interval):
+            if self._shutdown:
+                break
+            sleep(1)
+
