@@ -3,7 +3,7 @@ from threading import ThreadError
 from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
 from pywb.core.runner import RunConfig, Runner
-from pywb.surfing.chrome import Chrome
+from pywb.web.chrome import Chrome
 
 
 class RunManager(object):

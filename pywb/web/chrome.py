@@ -2,7 +2,7 @@
 from time import sleep
 
 from pywb.core.logger import logger
-from pywb.surfing.browser import Browser
+from pywb.web.browser import Browser
 from selenium.webdriver import Chrome as SeleniumChrome
 from selenium.webdriver import ChromeOptions
 

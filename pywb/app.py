@@ -19,7 +19,7 @@ from pywb.core.notifier import Notifier
 from pywb.core.run_manager import RunManager
 from pywb.core.plugin import load_plugins
 from pywb.core.runner import RunConfig
-from pywb.surfing.browser import BrowserType
+from pywb.web.browser import BrowserType
 
 
 class _App():

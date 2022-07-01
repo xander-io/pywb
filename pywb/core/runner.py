@@ -2,7 +2,7 @@ from threading import Thread
 from time import sleep
 
 from pywb.core.logger import logger
-from pywb.surfing.browser import BrowserType
+from pywb.web.browser import BrowserType
 
 
 class RunConfig(object):
