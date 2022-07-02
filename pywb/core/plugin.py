@@ -1,16 +1,13 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from importlib.util import module_from_spec, spec_from_file_location
-from os import environ, walk
+from os import walk
 from os.path import basename, isdir, join
 from sys import modules
 from time import sleep
 
 from genericpath import isfile
-from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
-from pywb.web.browser import BrowserType
-from pywb.web.chrome import Chrome
 
 
 def load_plugins(plugin_path) -> list:
@@ -40,9 +37,6 @@ def load_plugins(plugin_path) -> list:
     return plugins
 
 
-PluginError = Enum("PluginError", ["PLUGIN_SUCCESS", "PLUGIN_ERROR"], start=0)
-
-
 class Plugin(ABC):
     def __init__(self, name, version) -> None:
         super().__init__()
@@ -56,25 +50,22 @@ class Plugin(ABC):
         return "=========== " + self.name.upper() + " (" + self.version + ")" + " ==========="
 
     @abstractmethod
-    def validate_actions(self) -> None:
+    def validate_action_kwargs(self, action_kwargs) -> None:
         pass
 
     @abstractmethod
-    def init_run(self, actions, interval, notifier, browser_type) -> None:
+    def init_run(self, actions, interval, notifier, browser) -> None:
+        assert not self._run_initialized, "Critical Error - Plugin has already been initialized!"
+
         self._actions = actions
         self._interval = interval
         self._notifier = notifier
-        self.__init_browser(browser_type)
+        self._browser = browser
         
-        if not self._run_initialized:
-            self._run_initialized = True
+        self.__load_urls()
+        self._run_initialized = True
 
-    def __init_browser(self, browser_type):
-        if browser_type == BrowserType.CHROME:
-            self._browser = Chrome(headless=(not ENVIRON_DEBUG_KEY in environ))
-        else:
-            raise ValueError("Unsupported browser type '%s'" %
-                             browser_type.name.lower())
+    def __load_urls(self):
         urls = []
         for action in self._actions:
             urls += action.urls
@@ -87,11 +78,10 @@ class Plugin(ABC):
     @abstractmethod
     def stop(self) -> None:
         self._shut_down = True
-    
+
     def _sleep_on_interval(self):
         logger.info("Waiting %ds before refresh", self._interval)
         for _ in range(self._interval):
-            if self._shutdown:
+            if self._shut_down:
                 break
             sleep(1)
-

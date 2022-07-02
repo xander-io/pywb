@@ -36,9 +36,9 @@ def parse_actions(yaml_path):
 
 
 class Action(object):
-    def __init__(self, title, plugin, urls, **kwargs) -> None:
+    def __init__(self, title, plugin_name, urls, **kwargs) -> None:
         super().__init__()
         self.title = title
-        self.plugin = plugin
         self.urls = urls
-        self.__dict__.update((key, value) for key, value in kwargs.items())
+        self.plugin_name = plugin_name
+        self.kwargs = kwargs

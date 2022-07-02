@@ -1,6 +1,8 @@
+from enum import Enum
 from time import sleep
 from pywb.core.logger import logger
 from pywb.core.plugin import Plugin
+
 
 class CWNotify(Plugin):
     VERSION = "0.1"
@@ -8,22 +10,26 @@ class CWNotify(Plugin):
     def __init__(self) -> None:
         super().__init__(__class__.__name__, self.VERSION)
 
-    def validate_actions(self, actions) -> None:
-        return super().validate_actions()
+    def validate_action_kwargs(self, action_kwargs) -> None:
+        super().validate_action_kwargs(action_kwargs)
+        watch_types = Enum("WatchType", ["BUTTON"])
 
-    def init_run(self, actions, interval, notifier, browser_type) -> None:
-        return super().init_run(actions, interval, notifier, browser_type)
+        for kwargs in action_kwargs:
+            import pdb; pdb.set_trace()
+
+
+    def init_run(self, actions, interval, notifier, browser) -> None:
+        super().init_run(actions, interval, notifier, browser)
 
     def start(self) -> None:
         super().start()
         logger.info("I am starting this plugin up...")
-        
-        while not self._shutdown:
-            self._track_changes(self._browser.scrape())
-            self._sleep_on_interval()
-            if not self._shutdown:
-                self._browser.refresh_sites()
 
+        while not self._shut_down:
+            #self._track_changes(self._browser.scrape())
+            self._sleep_on_interval()
+            if not self._shut_down:
+                self._browser.refresh_sites()
 
     def stop(self) -> None:
         return super().stop()
