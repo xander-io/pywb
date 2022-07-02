@@ -1,18 +1,18 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from helium import get_driver, go_to, find_all, Window, switch_to, refresh
+from helium import get_driver, go_to, find_all, Window, switch_to, refresh, Button
 from time import sleep
 
 from pywb.core.logger import logger
 
 BrowserType = Enum("BrowserType", ["CHROME"])
-
+By = Enum("By", {"BUTTON": Button})
 
 class Browser(ABC):
 
     def __init__(self) -> None:
         super().__init__()
-        self._urls = None
+        self._windows = None
 
     @staticmethod
     def kill_all():
@@ -41,37 +41,25 @@ class Browser(ABC):
                 logger.debug("Waiting for %d window handles from driver..." %
                              expected_handles)
                 sleep(0.1)
+        self._windows = find_all(Window())
         self._switch_to_first_window()
 
     def refresh_sites(self):
         logger.info("Refreshing all browser windows")
-        for handle in find_all(Window()):
+        for handle in self._windows:
             switch_to(handle)
             refresh()
-        self._switch_to_first_window()
 
     def _switch_to_first_window(self):
-        switch_to(find_all(Window())[0])
+        switch_to(self._windows[0])
 
-    def scrape(self, by):
-        if not self._urls:
+    def scrape(self, by, text=None):
+        if not self._windows:
             return None
 
         logger.info("Scraping sites for data...")
         scrape_results = []
-        for i in range(len(self._driver.window_handles)):
-            self._driver.switch_to_window(self._driver.window_handles[i])
-            site = self._sites[i]
-            n_elements = 0
-            for xpath in site.get_xpaths():
-                tmp_n_elements = len(
-                    self._driver.find_elements_by_xpath(xpath))
-                if tmp_n_elements and n_elements > 0:
-                    # Multiple elements with same text - too ambiguous to refine search
-                    raise ValueError(
-                        "Multiple elements found containing '{text}' - is ambiguous".format(text=site.get_text()))
-                elif n_elements == 0:
-                    n_elements = tmp_n_elements
-            scrape_results.append((site, n_elements))
-        self._switch_to_first_window()
+        for i in range(len(self._windows)):
+            switch_to(self._windows[i])
+            scrape_results.append(find_all(by(text)))
         return scrape_results
