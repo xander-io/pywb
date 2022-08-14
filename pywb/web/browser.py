@@ -1,65 +1,76 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from enum import Enum
-from helium import get_driver, go_to, find_all, Window, switch_to, refresh, Button
 from time import sleep
 
+from pywb.web.result import Result
 from pywb.core.logger import logger
 
 BrowserType = Enum("BrowserType", ["CHROME"])
-By = Enum("By", {"BUTTON": Button})
+By = Enum("By",
+          {"BUTTON": "//button[text()='%s']",
+           "LINK": "//a[text()='%s']",
+           "TEXT": "//*[not(self::a) and not(self::button) and text()='%s']"})
 
-class Browser(ABC):
 
-    def __init__(self) -> None:
+class _Browser(ABC):
+
+    def __init__(self, driver) -> None:
         super().__init__()
-        self._windows = None
+        self._driver = driver
+        self._window_map = {}
 
-    @staticmethod
-    def kill_all():
-        driver = get_driver()
-        if driver:
-            driver.quit()
+    def quit(self):
+        if self._driver:
+            self._driver.quit()
 
-    def load_urls(self, urls) -> bool:
-        driver = get_driver()
-        if not driver:
-            raise RuntimeError("Unable to find web driver")
-
+    def load_urls(self, urls) -> None:
         for i in range(len(urls)):
             url = urls[i]
+            # Only need to load the url once
+            if url in self._window_map:
+                continue
             logger.info("Loading '%s'", url)
             # Load url for the current window
             if i == 0:
-                go_to(url)
+                self._driver.get(url)
             else:
-                driver.execute_script(
+                self._driver.execute_script(
                     "window.open('%s', '_blank');" % url)
-
             # Make sure the driver window handles are updated before loading another site
             expected_handles = i + 1
-            while len(find_all(Window())) != expected_handles:
+            while len(self._driver.window_handles) != expected_handles:
                 logger.debug("Waiting for %d window handles from driver..." %
                              expected_handles)
-                sleep(0.1)
-        self._windows = find_all(Window())
-        self._switch_to_first_window()
+                sleep(0.5)
+            self._window_map[url] = self._driver.window_handles[i]
 
-    def refresh_sites(self):
-        logger.info("Refreshing all browser windows")
-        for handle in self._windows:
-            switch_to(handle)
-            refresh()
+    def switch_to(self, window_handle) -> None:
+        if self._driver.current_window_handle != window_handle:
+            self._driver.switch_to.window(window_handle)
 
-    def _switch_to_first_window(self):
-        switch_to(self._windows[0])
+    def refresh_sites(self) -> None:
+        logger.info("Refreshing all windows")
+        for _, window_handle in self._window_map.items():
+            self.switch_to(window_handle)
+            self._driver.refresh()
 
-    def scrape(self, by, text=None):
-        if not self._windows:
-            return None
+    def scrape(self, urls, bys, texts) -> list[Result]:
+        if not self._window_map:
+            raise RuntimeError("Browser windows are not intialized!")
+        elif not texts:
+            return []
 
-        logger.info("Scraping sites for data...")
         scrape_results = []
-        for i in range(len(self._windows)):
-            switch_to(self._windows[i])
-            scrape_results.append(find_all(by(text)))
+        for i in range(len(urls)):
+            if urls[i] not in self._window_map:
+                logger.debug(
+                    "Some URLs not found - Loading before scraping data...")
+                self.load_urls(urls)
+            window_handle = self._window_map[urls[i]]
+            xpath = bys[i].value % texts[i]
+            logger.debug("Scraping window['%s']; xpath['%s']" % (window_handle, xpath))
+            self.switch_to(window_handle)
+            elements = self._driver.find_elements_by_xpath(xpath)
+            for e in elements:
+                scrape_results.append(Result(e, urls[i], window_handle, self))
         return scrape_results

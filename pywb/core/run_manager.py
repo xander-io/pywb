@@ -1,9 +1,7 @@
-from multiprocessing.sharedctypes import Value
 from threading import ThreadError
 
 from pywb.core.logger import logger
 from pywb.core.runner import RunConfig, Runner
-from pywb.web.browser import Browser
 
 class RunManager(object):
     def __init__(self, run_cfg) -> None:
@@ -61,7 +59,6 @@ class RunManager(object):
                         # Plugin isn't playing nicely... We'll try to clean up the rest
                         rogue_plugin = True
                         break
-        Browser.kill_all()
         if rogue_plugin:
             raise ThreadError(
                 "One or more plugins did not clean up properly... Forcing process exit!")

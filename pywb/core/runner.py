@@ -24,10 +24,12 @@ class RunConfig(object):
 
 class Runner(Thread):
     def __init__(self, plugin, run_cfg) -> None:
-        logger.debug("Initializing runner...")
         super().__init__()
         self._run_cfg = run_cfg
         self._plugin = plugin()
+        self._browser = self.__init_browser()
+        logger.debug("Initialized runner for plugin '%s'..." %
+                     str(self._plugin.name))
 
     def _send_notification(self, site):
         site_item = site.get_item_name()
@@ -40,18 +42,17 @@ class Runner(Thread):
 
     def run(self):
         try:
-            self._plugin.validate_action_kwargs(
-                [action.kwargs for action in self._run_cfg.actions])
             self._plugin.init_run(self._run_cfg.actions, self._run_cfg.interval,
-                                  self._run_cfg.notifier, self.__init_browser())
+                                  self._run_cfg.notifier, self._browser)
             logger.info("\n" + self._plugin.ascii())
             self._plugin.start()
         except Exception as e:
-            # Generically catching errors as a catch-all for any exceptions th2rown by the plugin
+            # Generically catching errors as a catch-all for any exceptions thrown by the plugin
             if (self._err_from_driver(e)):
                 logger.debug(self._plugin.name + ": " + str(e))
             else:
                 logger.error(self._plugin.name + ": " + str(e))
+        self.shut_down()
 
     def _err_from_driver(self, err):
         # Common errors associated with the driver are from selenium and urllib3
@@ -68,3 +69,4 @@ class Runner(Thread):
 
     def shut_down(self):
         self._plugin.stop()
+        self._browser.quit()

@@ -50,10 +50,6 @@ class Plugin(ABC):
         return "=========== " + self.name.upper() + " (" + self.version + ")" + " ==========="
 
     @abstractmethod
-    def validate_action_kwargs(self, action_kwargs) -> None:
-        pass
-
-    @abstractmethod
     def init_run(self, actions, interval, notifier, browser) -> None:
         assert not self._run_initialized, "Critical Error - Plugin has already been initialized!"
 
@@ -61,8 +57,7 @@ class Plugin(ABC):
         self._interval = interval
         self._notifier = notifier
         self._browser = browser
-        
-        self.__load_urls()
+
         self._run_initialized = True
 
     def __load_urls(self):
@@ -74,13 +69,14 @@ class Plugin(ABC):
     @abstractmethod
     def start(self) -> None:
         assert self._run_initialized, "Critical Error - Unable to start plugin. Run has not been initialized!"
+        self.__load_urls()
 
     @abstractmethod
     def stop(self) -> None:
         self._shut_down = True
 
     def _sleep_on_interval(self):
-        logger.info("Waiting %ds before refresh", self._interval)
+        logger.info("Waiting on interval (%ds)", self._interval)
         for _ in range(self._interval):
             if self._shut_down:
                 break

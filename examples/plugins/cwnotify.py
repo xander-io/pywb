@@ -1,33 +1,51 @@
 from enum import Enum
-from time import sleep
 from pywb.core.logger import logger
 from pywb.core.plugin import Plugin
 from pywb.web.browser import By
 
+
+NotifyOnType = Enum("NotifyOnType", ["APPEAR", "DISAPPEAR"])
+
+
 class CWNotify(Plugin):
     VERSION = "0.1"
 
+    ACTION_KWARG_WATCH = "watch"
+    ACTION_KWARG_TEXT = "text"
+    ACTION_KWARG_NOTIFY_ON = "notify_on"
+
     def __init__(self) -> None:
+        self.__baseline = {}
         super().__init__(__class__.__name__, self.VERSION)
 
-    def validate_action_kwargs(self, action_kwargs) -> None:
-        super().validate_action_kwargs(action_kwargs)
-        watch_types = Enum("WatchType", ["BUTTON"])
-
-        for kwargs in action_kwargs:
-            # TODO
-            pass
+    def __validate_action_kwargs(self) -> None:
+        for action in self._actions:
+            for k, v in action.kwargs.items():
+                if type(v) != list:
+                    raise ValueError(
+                        "For action '%s' - '%s' must be a list" % (action.title, k))
+                if len(v) != len(action.urls):
+                    raise ValueError(
+                        "For action '%s' - '%s' must have %s values" % (action.title, k, len(action.urls)))
 
     def init_run(self, actions, interval, notifier, browser) -> None:
         super().init_run(actions, interval, notifier, browser)
+        self.__validate_action_kwargs()
 
     def start(self) -> None:
         super().start()
-        logger.info("I am starting this plugin up...")
+        # Combine action properties into one list
+        for action in self._actions:
+            # Replace watch and notify string strings with element types
+            action.kwargs[self.ACTION_KWARG_WATCH] = [By[watch_type.upper()]
+                                                      for watch_type in action.kwargs[self.ACTION_KWARG_WATCH]]
+            action.kwargs[self.ACTION_KWARG_NOTIFY_ON] = [NotifyOnType[notify_type.upper()]
+                                                          for notify_type in action.kwargs[self.ACTION_KWARG_NOTIFY_ON]]
 
         while not self._shut_down:
-            import pdb; pdb.set_trace()
-            self._track_changes(self._browser.scrape(By.BUTTON.value))
+            for action in self._actions:
+                self.__notify_changes(action, self._browser.scrape(
+                    action.urls, action.kwargs[self.ACTION_KWARG_WATCH], action.kwargs[self.ACTION_KWARG_TEXT]))
             self._sleep_on_interval()
             if not self._shut_down:
                 self._browser.refresh_sites()
@@ -35,90 +53,41 @@ class CWNotify(Plugin):
     def stop(self) -> None:
         return super().stop()
 
-    def _track_changes(self, scrape_results):
-        import pdb; pdb.set_trace()
-        """
-        for site, n_elements in scrape_results:
-            site_url = site.get_url(friendly=True)
-            site_notify_type = site.get_notify_type()
-            element_baseline = site.get_element_baseline()
-            if element_baseline is None:
-                element_baseline = self._evaluate_baseline(site, n_elements)
-                # Unable to track changes if a baseline is not established
-                if element_baseline is None:
-                    logger.warning(
-                        "Skipping tracking '%s'...", site_url)
-                    continue
+    def __notify_changes(self, action, scrape_results):
+        stats = self.__compile_results(action.urls, scrape_results)
+        if action.title not in self.__baseline:
+            logger.info("Tracking changes for action '%s'" % action.title)
+            self.__baseline[action.title] = stats
 
-            if (n_elements > element_baseline and site_notify_type == NotifyOnType.APPEAR) or \
-                    (n_elements < element_baseline and site_notify_type == NotifyOnType.DISAPPEAR):
-                # Action occurred - alert user
-                logger.info("ALERT '%s:%s[%s]' in '%s'",
-                            site.get_watch_type().value, site.get_text(), site_notify_type.value, site_url)
-                logger.debug("'%s': [baseline=%d, [n_elements=%d]",
-                             site_url, element_baseline, n_elements)
-                self._send_notification(site)
+        for i in range(len(action.urls)):
+            notify = False
+            url = action.urls[i]
+            watch_type = action.kwargs[self.ACTION_KWARG_WATCH][i]
+            notify_type = action.kwargs[self.ACTION_KWARG_NOTIFY_ON][i]
+            text = action.kwargs[self.ACTION_KWARG_TEXT][i]
+            notify |= (stats[url] > self.__baseline[action.title]
+                       [url] and notify_type == NotifyOnType.APPEAR)
+            notify |= ((stats[url] < self.__baseline[action.title][url]
+                        or stats[url] == 0) and notify_type == NotifyOnType.DISAPPEAR)
+            if notify:
+                title = "'%s'" % action.title
+                message = "%s:%s['%s']" % (
+                    str(watch_type), str(notify_type), text)
+                logger.info("**** %s: %s (%s) ****" % (title, message, url))
+                self._notifier.notify(title, message, url)
+
+    def __compile_results(self, urls, scrape_results) -> dict:
+        stats = {}
+        for r in scrape_results:
+            if r.url not in stats:
+                stats[r.url] = 1
             else:
-                # No changes found yet
-                logger.info("No changes found in '%s'", site_url)
-        """
+                stats[r.url] = stats[r.url] + 1
+        # Fill in urls that did not have any results from web scrape
+        for url in urls:
+            if url not in stats:
+                stats[url] = 0
+        return stats
+
 
 plugin = CWNotify
-
-
-"""
-def _evaluate_baseline(self, site, n_elements):
-    site_notify_type = site.get_notify_type()
-    element_baseline = None
-    if (n_elements == 0 and site_notify_type == NotifyOnType.APPEAR) or \
-            (n_elements > 0 and site_notify_type == NotifyOnType.DISAPPEAR):
-        logger.info("Tracking '%s:%s[%s]' for site '%s'",
-                    site.get_watch_type().value, site.get_text(),
-                    site_notify_type.value, site.get_url(friendly=True))
-        element_baseline = n_elements
-        logger.debug("'%s': [baseline=%d]",
-                        element_baseline, site.get_url(friendly=True))
-    else:
-        logger.warning("Unable to establish an accurate baseline with '%s:%s[%s]' for site '%s' - "
-                        "Action may have already occurred?", site.get_watch_type().value, site.get_text(),
-                        site_notify_type.value, site.get_url(friendly=True))
-    site.set_element_baseline(element_baseline)
-    return element_baseline
-"""
-
-
-"""
-def _generate_xpaths(self):
-    xpaths = []
-    try:
-        elements = _SITE_ELEMENTS[self._watch_type.value]
-    except KeyError:
-        raise ValueError("Elements do not exist for watch type '{watch_type}'".format(
-            watch_type=self._watch_type.value))
-
-    for element in elements:
-        element_xpath = "//{element}[contains(translate(text(), '{text_upper}', '{text_lower}'),'{text_lower}')]".format(
-            element=element, text_upper=self._text.upper(), text_lower=self._text.lower())
-        xpaths.append(element_xpath)
-    return xpaths
-"""
-
-"""
-class NotifyOnType(Enum):
-    APPEAR = "appear"
-    DISAPPEAR = "disappear"
-
-
-class SiteWatchType(Enum):
-    # Matches with the sites parser
-    LINK = "link"
-    BUTTON = "button"
-    TEXT = "text"
-
-
-_SITE_ELEMENTS = {
-    SiteWatchType.LINK.value: ["a"],
-    SiteWatchType.BUTTON.value: ["button", "a", "input"],
-    SiteWatchType.TEXT.value: ["span", "p"]
-}
-"""

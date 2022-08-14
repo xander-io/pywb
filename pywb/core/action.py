@@ -5,19 +5,14 @@ from yaml import YAMLError, safe_load
 _REQUIRED_ENTRY_ITEMS = ["plugin", "urls"]
 
 
-def _validate_yaml_entry(entry) -> Tuple[str, str]:
-    items = []
-    for item in _REQUIRED_ENTRY_ITEMS:
-        if item not in entry:
-            raise ValueError("'%s' not in entry" % item)
-        items.append(entry[item])
-        del entry[item]
-    return tuple(items)
-
-
 def _yaml_entry_to_site(title, entry):
-    plugin, urls = _validate_yaml_entry(entry)
-    return Action(title, plugin, urls, **entry)
+    try:
+        plugin, urls = (entry[i] for i in _REQUIRED_ENTRY_ITEMS)
+        for i in _REQUIRED_ENTRY_ITEMS:
+            del entry[i]
+        return Action(title, plugin, urls, **entry)
+    except KeyError as e:
+        raise ValueError("%s not in entry" % str(e))
 
 
 def parse_actions(yaml_path):

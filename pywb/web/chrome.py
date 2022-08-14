@@ -1,18 +1,19 @@
 
 from time import sleep
 
-from pywb.core.logger import logger
-from pywb.web.browser import Browser
+from pywb.web.browser import _Browser
 from selenium.webdriver import ChromeOptions
-from helium import start_chrome
+from selenium.webdriver import Chrome as SeleniumChrome
 
-
-class Chrome(Browser):
+class Chrome(_Browser):
 
     def __init__(self, headless=True):
         driver_options = ChromeOptions()
+        driver_options.headless = headless
         driver_options.add_argument('--ignore-certificate-errors')
         driver_options.add_argument('--ignore-ssl-errors')
         driver_options.add_argument("--log-level=3")
-        start_chrome(headless=headless, options=driver_options)
-        super().__init__()  
+        driver_options.add_argument("--disable-infobars")
+        driver_options.add_argument("--disable-extensions")
+        super().__init__(SeleniumChrome(options=driver_options)
+)  
