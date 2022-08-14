@@ -1,17 +1,17 @@
-NVIDIA GEFORCE 3080 Graphics Card: # Title to notify
+NVIDIA GEFORCE 3090 Graphics Card: # Title to notify
   - plugin: CWNotify
     urls: 
-      - https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440
-      - https://www.microcenter.com/product/628318/asus-geforce-rtx-3080-tuf-gaming-overclocked-triple-fan-10gb-gddr6x-pcie-40-graphics-card?storeid=071
-    watch-type: "button" # As of 0.0.1, supported types => button, link, text
-    notify-on: "disappear" # Options (appear, disappear) - notify on whether the watch-type appears or disappears
-    text: "Sold Out" # The watch-type text content (i.e Add to Cart, Check out, etc.) NOTE: Text is case-insensitive
+      - https://www.bestbuy.com/site/nvidia-geforce-rtx-3090-24gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429434.p?ref=186&loc=nvidia_site&skuId=6429434
+      - https://www.microcenter.com/product/648270/asus-nvidia-geforce-rtx-3090-ti-tuf-gaming-overclocked-triple-fan-24gb-gddr6x-pcie-40-graphics-card?storeid=071
+    watch: ["Button", "Text"] # As of 0.0.1, supported types => button, link, text
+    text: ["Sold Out", "RESERVE NOW"] # The watch text content (i.e Add to Cart, Check out, etc.) NOTE: Text is case-sensitive
+    notify_on: ["Disappear", "Appear"] # Options (appear, disappear) - notify on whether the item being watched appears or disappears
 
-eBay Low Stock Alert: # Title to notify
+UI Camera System: # Title to notify
   - plugin: CWNotify
     urls: 
-      - https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440
-      - https://www.microcenter.com/product/628318/asus-geforce-rtx-3080-tuf-gaming-overclocked-triple-fan-10gb-gddr6x-pcie-40-graphics-card?storeid=071
-    watch-type: "button" # As of 0.0.1, supported types => button, link, text
-    notify-on: "disappear" # Options (appear, disappear) - notify on whether the watch-type appears or disappears
-    text: "Sold Out" # The watch-type text content (i.e Add to Cart, Check out, etc.) NOTE: Text is case-insensitive
+      - https://store.ui.com/collections/unifi-protect-cameras/products/unifi-protect-g3-instant-camera
+      - https://store.ui.com/collections/unifi-protect-cameras/products/unifi-video-g3-flex-camera
+    watch: ["Text", "Text"] # As of 0.0.1, supported types => button, link, text
+    text: ["This device is currently sold out", "This device is currently sold out"] # The watch text content (i.e Add to Cart, Check out, etc.) NOTE: Text is case-sensitive
+    notify_on: ["Disappear", "Disappear"] # Options (appear, disappear) - notify on whether the item being watched appears or disappears
