@@ -40,5 +40,5 @@ jobs:
     - name: Upload and archive pywb wheel
       uses: actions/upload-artifact@v3
       with:
-        name: pywb wheel
+        name: pywb
         path: ./dist/*
