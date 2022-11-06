@@ -27,7 +27,7 @@ class Runner(Thread):
         super().__init__()
         self._run_cfg = run_cfg
         self._plugin = plugin()
-        self._browser = self.__init_browser()
+        self._browser = None
         logger.debug("Initialized runner for plugin '%s'..." %
                      str(self._plugin.name))
 
@@ -42,6 +42,7 @@ class Runner(Thread):
 
     def run(self):
         try:
+            self._browser = self.__run_browser()
             self._plugin.init_run(self._run_cfg.actions, self._run_cfg.interval,
                                   self._run_cfg.notifier, self._browser)
             logger.info("\n" + self._plugin.ascii())
@@ -60,7 +61,7 @@ class Runner(Thread):
         return hasattr(err, "__module__") and \
             ("selenium" in err.__module__ or "urllib3" in err.__module__)
 
-    def __init_browser(self):
+    def __run_browser(self):
         if self._run_cfg.browser_type == BrowserType.CHROME:
             return Chrome(headless=(not ENVIRON_DEBUG_KEY in environ))
         else:
@@ -69,4 +70,3 @@ class Runner(Thread):
 
     def shut_down(self):
         self._plugin.stop()
-        self._browser.quit()
