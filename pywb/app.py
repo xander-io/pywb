@@ -6,18 +6,18 @@ Functions
     run()
 """
 
-from signal import signal, SIGINT
 from argparse import ArgumentParser
 from os import environ
-from threading import ThreadError
+from signal import SIGINT, signal
 from sys import exit
+from threading import ThreadError
 
+from pywb.ascii.ascii import generate_ascii_art
 from pywb.core.action import parse_actions
-from pywb.ascii import generate_ascii_art
 from pywb.core.logger import logger
 from pywb.core.notifier import Notifier
-from pywb.core.run_manager import RunManager
 from pywb.core.plugin import load_plugins
+from pywb.core.run_manager import RunManager
 from pywb.core.runner import RunConfig
 from pywb.web.browser import BrowserType
 
