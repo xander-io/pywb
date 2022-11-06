@@ -47,7 +47,7 @@ class Plugin(ABC):
         self._actions = self._interval = self._notifier = self._browser = None
 
     def ascii(self) -> str:
-        return "=========== " + self.name.upper() + " (" + self.version + ")" + " ==========="
+        return "=========== " + self.name + " (" + self.version + ")" + " ==========="
 
     @abstractmethod
     def init_run(self, actions, interval, notifier, browser) -> None:
@@ -79,5 +79,6 @@ class Plugin(ABC):
         logger.info("Waiting on interval (%ds)", self._interval)
         for _ in range(self._interval):
             if self._shut_down:
+                logger.debug("While sleeping, plugin received shutdown signal!")
                 break
             sleep(1)
