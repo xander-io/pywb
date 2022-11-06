@@ -37,3 +37,8 @@ jobs:
     - name: Build pywb wheel
       run: |
         ./scripts/build.sh
+    - name: Archive code coverage results
+      uses: actions/upload-artifact@v3
+      with:
+        name: pywb-wheel
+        path: ./dist/*
