@@ -12,6 +12,7 @@ setuptools.setup(
     description="Python Web Bot",
     packages=setuptools.find_packages(),
     install_requires=reqs,
+    include_package_data=True,
     python_requires=">=3.9.0",
     entry_points={"console_scripts": ["pywb = pywb.app:run"]}
 )
