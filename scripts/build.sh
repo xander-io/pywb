@@ -3,4 +3,6 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd ${DIR}/../
 
-python3 setup.py sdist bdist_wheel
+pip3 install wheel --quiet
+python3 setup.py clean --all
+python3 setup.py bdist_wheel
