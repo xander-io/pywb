@@ -1,9 +1,12 @@
 from abc import ABC
 from enum import Enum
+from os import environ, mkdir, path
 from time import sleep
+from urllib.parse import urlparse
 
-from pywb.web.result import Result
+from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
+from pywb.web.result import Result
 
 BrowserType = Enum("BrowserType", ["CHROME"])
 By = Enum("By",
@@ -68,9 +71,24 @@ class _Browser(ABC):
                 self.load_urls(urls)
             window_handle = self._window_map[urls[i]]
             xpath = bys[i].value % texts[i]
-            logger.debug("Scraping window['%s']; xpath['%s']" % (window_handle, xpath))
+            logger.debug("Scraping window['%s']; xpath['%s']" % (
+                window_handle, xpath))
             self.switch_to(window_handle)
-            elements = self._driver.find_elements_by_xpath(xpath)
+            elements = self._driver.find_elements("xpath", xpath)
             for e in elements:
+                if ENVIRON_DEBUG_KEY in environ:
+                    self.__save_element_image(
+                        e.screenshot_as_png, "%s-%s.png" % (urlparse(urls[i]).netloc, window_handle))
                 scrape_results.append(Result(e, urls[i], window_handle, self))
         return scrape_results
+
+    def __save_element_image(self, img, filename):
+        IMAGE_DIR = "pywb_scrape_results"
+
+        if not path.exists(IMAGE_DIR):
+            mkdir(IMAGE_DIR)
+        screenshot_path = path.join(IMAGE_DIR, filename)
+        if path.exists(screenshot_path):
+            return
+        with open(screenshot_path, "wb") as f:
+            f.write(img)
