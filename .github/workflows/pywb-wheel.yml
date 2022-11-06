@@ -37,14 +37,7 @@ jobs:
     - name: Build pywb wheel
       run: |
         ./scripts/build.sh
-        
-  archive:
-  
-    runs-on: ubuntu-latest
-    needs: build
-    
-    steps:
-    - name: Upload and archive wheel
+    - name: Upload and archive pywb wheel
       uses: actions/upload-artifact@v3
       with:
         path: ./dist/*
