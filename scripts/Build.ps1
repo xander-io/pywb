@@ -5,6 +5,7 @@ try
     
     Set-Location -Path $PSScriptRoot/../
     pip3 install wheel --quiet
+    python3 setup.py clean --all
     python3 setup.py bdist_wheel
 } 
 catch 
