@@ -3,6 +3,7 @@ from threading import ThreadError
 from pywb.core.logger import logger
 from pywb.core.runner import RunConfig, Runner
 
+
 class RunManager(object):
     def __init__(self, run_cfg) -> None:
         self._common_run_cfg = run_cfg
@@ -20,28 +21,17 @@ class RunManager(object):
             runner.start()
 
     def _actions_to_runners(self, actions, plugins) -> None:
-        runs = {}
-
         # Merge actions into plugins - One plugin instance for multiple actions
         for action in actions:
             if action.plugin_name not in plugins:
                 raise ValueError(
                     "Unable to find plugin %s from loaded external plugins" % action.plugin_name)
 
-            if action.plugin_name not in runs:
-                # Create a new run config with the action
-                new_cfg = RunConfig.from_run_config(self._common_run_cfg)
-                new_cfg.actions = [action]
-                # Add the action to existing run configs
-                runs[action.plugin_name] = (plugins[action.plugin_name], new_cfg)
-            else:
-                # Append action to existing run config
-                _, cfg = runs[action.plugin_name]
-                cfg.actions.append(action)
-
-        # Create runners
-        self._runners = [Runner(plugin, run_cfg)
-                         for _, (plugin, run_cfg) in runs.items()]
+            # Create a new run config with the action
+            new_cfg = RunConfig.from_run_config(self._common_run_cfg)
+            new_cfg.actions = [action]
+            # Add a new runner with the config and plugin
+            self._runners.append(Runner(plugins[action.plugin_name], new_cfg))
 
     def _wait_for_runners(self) -> None:
         runner_timeout = 10
