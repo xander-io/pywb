@@ -6,99 +6,146 @@ Functions
     run()
 """
 
-from argparse import ArgumentParser
-from os import environ
-from signal import SIGINT, signal
-from sys import exit
-from threading import ThreadError
+from argparse import Namespace
+from sys import exit, stdout
+
+from cmd2 import Cmd, Cmd2ArgumentParser, Settable, ansi, with_argparser
 
 from pywb.ascii.ascii import generate_ascii_art
 from pywb.core.action import parse_actions
-from pywb.core.logger import logger
+from pywb.core.logger import DEFAULT_LOG_PATH, logger, set_logger_output_path
 from pywb.core.notifier import Notifier
-from pywb.core.plugin import load_plugins
+from pywb.core.plugin_manager import PluginManager
 from pywb.core.run_manager import RunManager
 from pywb.core.runner import RunConfig
 from pywb.web.browser import BrowserType
 
 
-class _App():
+class _App(Cmd):
     """
     A class representing the pywb application
 
     Methods
     -------
-    start():
-        Starts the pyww application
+    TODO
     """
 
-    def __init__(self, args):
+    def __init__(self):
         """
         Constructs all the necessary attributes for the app object.
 
         Parameters
         ----------
-        args : object
-            the args from argparse
-        """
-
-        self._notifier = Notifier(
-            remote_notifications=args.remote_notifications)
-        self._run_manager = RunManager(RunConfig(interval=args.interval,
-                                                 notifier=self._notifier, browser_type=BrowserType.CHROME))
-        self._actions_path = args.actions
-        self._plugins_path = args.plugins
-
-    def start(self):
-        """
-        Starts the pywb application.
-
-        Returns
-        -------
         None
         """
+        super().__init__()
+        self.__delete_cmd2_builtins()
+        self.__init_settings()
+        self.__init_managers()
 
-        signal(SIGINT, self._shut_down)
-        logger.info(generate_ascii_art())
-        logger.info(self._notifier.notify_info())
-        plugins = load_plugins(self._plugins_path)
-        actions = parse_actions(self._actions_path)
-        if plugins and actions:
-            self._run_manager.delegate_and_wait(actions, plugins)
+    def __init_managers(self):
+        self._plugin_manager = PluginManager()
+        self._run_manager = None
 
-    def _shut_down(self, *_):
-        logger.info("Shutdown signaled for pywb...")
-        self._run_manager.shut_down()
+    def __init_settings(self):
+        # Set defaults
+        self.prompt = "(pywb) > "
+        self.browser = "Chrome"
+        self.interval = 30
+        self.log_path = DEFAULT_LOG_PATH
+        self.remote_notifications = False
 
+        # Add custom settings
+        self.add_settable(
+            Settable("browser", str, "Browser used by pywb (Supported: %s)"
+                     % str([i.name.capitalize() for i in BrowserType]),
+                     self, onchange_cb=self.__on_browser_change))
+        self.add_settable(
+            Settable("interval", int, "Interval in seconds to poll actions", self))
+        self.add_settable(Settable("log_path", str, "Path to log file for web bot output",
+                          self, onchange_cb=lambda _p, _o, new_path: set_logger_output_path(new_path)))
+        self.add_settable(
+            Settable("remote_notifications", bool, "Receive remote notifcations from pywb", self))
 
-def _parse_args():
-    parser = ArgumentParser("pywb")
-    parser.add_argument("-i", "--interval", type=int,
-                        help="Interval in seconds to refresh website data", default=30)
-    parser.add_argument("-r", "--remote-notifications", action="store_true",
-                        help="Enables remote access for push notifications")
-    parser.add_argument("-a", "--actions", type=str,
-                        help="Yaml file to actions", required=True)
-    parser.add_argument("-p", "--plugins", type=str,
-                        help="File or folder for python plugins", required=True)
-    return parser.parse_args()
+    def __delete_cmd2_builtins(self):
+        delattr(Cmd, "do_alias")
+        delattr(Cmd, "do_macro")
+        self.remove_settable("debug")
 
+    def __on_browser_change(self, _p, _o, new_browser):
+        try:
+            # Attempt to set new browser type
+            tmp = BrowserType[new_browser.upper()]
+        except:
+            raise ValueError("Browser '%s' is unsupported" % new_browser)
+        # Format string
+        self.browser = new_browser.capitalize()
+
+    def cmdloop(self, intro=None):
+        self.poutput(intro)
+        self._plugin_manager.load_builtin_plugins()
+        self.__display_plugins()
+
+        # Custom cmdloop that catches multiple keyboard interrupts
+        while True:
+            try:
+                super().cmdloop(intro="")
+                break
+            except KeyboardInterrupt:
+                self.poutput("^C")
+
+    # Parser for example command
+    bot_cmd_parser = Cmd2ArgumentParser(
+        description="Command to start or stop the web bot service"
+    )
+    # Tab complete using a completer
+
+    service_parser = bot_cmd_parser.add_subparsers(title="service control states", help="help")
+    start = service_parser.add_parser("start", help="start")
+    stop = service_parser.add_parser("stop", help="stop")
+    start.add_argument("--actions", completer=Cmd.path_complete,
+                            help="actions yaml file for the web bot to run")
+
+    @with_argparser(bot_cmd_parser)
+    def do_bot(self, ns: Namespace) -> None:
+        statement = ns.cmd2_statement.get()
+        if statement.args.split()[0] == "start":
+            # Only can have one run manager
+            if self._run_manager:
+                self.perror("The pywb service is already running!")
+            elif not ns.actions:
+                self.perror("Unable to start pywb service - Missing actions .yaml file")
+            else:
+                actions = parse_actions(ns.actions)
+                default_run_cfg = RunConfig(interval=self.interval,
+                                            notifier=Notifier(
+                                                remote_notifications=self.remote_notifications),
+                                            browser_type=BrowserType[self.browser.upper()])
+                self._run_manager = RunManager(actions, default_run_cfg)
+                self._run_manager.start()
+        else:
+            if self._run_manager:
+                self._run_manager.shut_down()
+                self.poutput("Shutdown signaled for pywb service...")
+                self._run_manager.join()
+            self._run_manager = None
+            self.poutput("Successfully stopped the pywb service!")
+
+    def do_plugins(self, _: Namespace) -> None:
+        self.__display_plugins()
+
+    def __display_plugins(self) -> None:
+        ansi.style_aware_write(
+            stdout, self._plugin_manager.generate_loaded_plugins_table())
 
 def run():
     """
-    Runs the pyww application
+    Runs the pywb application
 
     Returns
     -------
     None
     """
 
-    try:
-        app = _App(_parse_args())
-        app.start()
-    except ThreadError as te:
-        logger.error(te)
-        # Calling exit in case we have any rogue external plugins that aren't cleaning up properly
-        exit()
-    except Exception as err:
-        logger.error(err)
+    app = _App()
+    exit(app.cmdloop(intro=generate_ascii_art()))
