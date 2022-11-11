@@ -1,39 +1,45 @@
-from threading import ThreadError
+from threading import ThreadError, Thread
+from typing import List
 
 from pywb.core.logger import logger
 from pywb.core.runner import RunConfig, Runner
+from pywb.core.action import Action
 
 
-class RunManager(object):
-    def __init__(self, run_cfg) -> None:
-        self._common_run_cfg = run_cfg
+class RunManager(Thread):
+    def __init__(self, actions: List[Action], default_run_cfg : RunConfig) -> None:
+        super().__init__()
+        self._default_run_cfg = default_run_cfg
+        self._actions = actions
         self._runners = []
         self._shut_down = False
 
-    def delegate_and_wait(self, actions, plugins) -> None:
+    def run(self):
+        self.__delegate_and_wait()
+
+    def __delegate_and_wait(self, actions, plugins) -> None:
         self._actions_to_runners(actions, plugins)
-        self._start_runners()
+        self.__start_runners()
         # Waiting for runners to finish executing
-        self._wait_for_runners()
+        self.__wait_for_runners()
 
-    def _start_runners(self) -> None:
-        for runner in self._runners:
-            runner.start()
+    def __start_runners(self) -> None:
+        [runner.start() for runner in self._runners]
 
-    def _actions_to_runners(self, actions, plugins) -> None:
+    def __actions_to_runners(self) -> None:
         # Merge actions into plugins - One plugin instance for multiple actions
-        for action in actions:
-            if action.plugin_name not in plugins:
+        for action in self._actions:
+            if action.plugin_name not in PluginManager.LOADED_PLUGINS:
                 raise ValueError(
                     "Unable to find plugin %s from loaded external plugins" % action.plugin_name)
 
             # Create a new run config with the action
-            new_cfg = RunConfig.from_run_config(self._common_run_cfg)
+            new_cfg = RunConfig.from_run_config(self._default_run_cfg)
             new_cfg.actions = [action]
             # Add a new runner with the config and plugin
             self._runners.append(Runner(plugins[action.plugin_name], new_cfg))
 
-    def _wait_for_runners(self) -> None:
+    def __wait_for_runners(self) -> None:
         runner_timeout = 10
         rogue_plugin = False
         # Wait for timeout in secs for each runner to finish cleaning up properly
