@@ -13,12 +13,12 @@ from cmd2 import Cmd, Cmd2ArgumentParser, Settable, ansi, with_argparser
 
 from pywb.ascii.ascii import generate_ascii_art
 from pywb.core.action import parse_actions
-from pywb.core.logger import DEFAULT_LOG_PATH, logger, set_logger_output_path
+from pywb.core.logger import DEFAULT_LOG_PATH, set_logger_output_path
 from pywb.core.notifier import Notifier
 from pywb.core.plugin_manager import PluginManager
 from pywb.core.run_manager import RunManager
 from pywb.core.runner import RunConfig
-from pywb.web.browser import BrowserType
+from pywb.web import BrowserType
 
 
 class _App(Cmd):
@@ -44,8 +44,8 @@ class _App(Cmd):
         self.__init_managers()
 
     def __init_managers(self):
-        self._plugin_manager = PluginManager()
-        self._run_manager = None
+        self.__plugin_manager = PluginManager()
+        self.__run_manager = None
 
     def __init_settings(self):
         # Set defaults
@@ -83,7 +83,7 @@ class _App(Cmd):
 
     def cmdloop(self, intro=None):
         self.poutput(intro)
-        self._plugin_manager.load_builtin_plugins()
+        self.__plugin_manager.load_builtin_plugins()
         self.__display_plugins()
 
         # Custom cmdloop that catches multiple keyboard interrupts
@@ -95,48 +95,61 @@ class _App(Cmd):
                 self.poutput("^C")
 
     # Parser for example command
-    bot_cmd_parser = Cmd2ArgumentParser(
-        description="Command to start or stop the web bot service"
-    )
-    # Tab complete using a completer
-
-    service_parser = bot_cmd_parser.add_subparsers(title="service control states", help="help")
-    start = service_parser.add_parser("start", help="start")
-    stop = service_parser.add_parser("stop", help="stop")
-    start.add_argument("--actions", completer=Cmd.path_complete,
+    bot_cmd_parser = Cmd2ArgumentParser(description="Command web bot service")
+    service = bot_cmd_parser.add_subparsers(title="service controls", help="controls the bot's state")
+    start = service.add_parser("start", help="start")
+    start.add_argument("--actions", "-a", completer=Cmd.path_complete,
                             help="actions yaml file for the web bot to run")
+    stop = service.add_parser("stop", help="stop")
+    status = service.add_parser("status", help="status")
 
     @with_argparser(bot_cmd_parser)
     def do_bot(self, ns: Namespace) -> None:
         statement = ns.cmd2_statement.get()
-        if statement.args.split()[0] == "start":
-            # Only can have one run manager
-            if self._run_manager:
-                self.perror("The pywb service is already running!")
-            elif not ns.actions:
-                self.perror("Unable to start pywb service - Missing actions .yaml file")
-            else:
-                actions = parse_actions(ns.actions)
-                default_run_cfg = RunConfig(interval=self.interval,
-                                            notifier=Notifier(
-                                                remote_notifications=self.remote_notifications),
-                                            browser_type=BrowserType[self.browser.upper()])
-                self._run_manager = RunManager(actions, default_run_cfg)
-                self._run_manager.start()
+        service_cmd = statement.args.split()[0]
+        if service_cmd == "start":
+            self.__start_bot_service(ns)
+        elif service_cmd == "status":
+            self.poutput("No status at this time :)")
         else:
-            if self._run_manager:
-                self._run_manager.shut_down()
-                self.poutput("Shutdown signaled for pywb service...")
-                self._run_manager.join()
-            self._run_manager = None
-            self.poutput("Successfully stopped the pywb service!")
+            self.__stop_bot_service()
+
+
+    def __start_bot_service(self, ns): 
+        # Only can have one run manager
+        if self.__run_manager and self.__run_manager.is_alive():
+            self.perror("The pywb service is already running!")
+        elif not ns.actions:
+            self.perror("Unable to start pywb service - Missing actions .yaml file")
+        else:
+            # Parse the actions from the yaml file
+            actions = parse_actions(ns.actions)
+            # Get a local copy of the plugins loaded right now
+            plugins = self.__plugin_manager.loaded_plugins
+            default_run_cfg = RunConfig(interval=self.interval,
+                                        notifier=Notifier(
+                                            remote_notifications=self.remote_notifications))
+
+            self.__run_manager = RunManager(actions, plugins, BrowserType[self.browser.upper()].value, default_run_cfg)
+            self.__run_manager.start()
+    
+    def __stop_bot_service(self):
+        if not self.__run_manager:
+            return
+
+        self.__run_manager.shut_down()
+        self.poutput("Shutdown signaled for pywb service...")
+        self.__run_manager.join()
+        self.poutput("Successfully stopped the pywb service!")
+        self.__run_manager = None
+
 
     def do_plugins(self, _: Namespace) -> None:
         self.__display_plugins()
 
     def __display_plugins(self) -> None:
         ansi.style_aware_write(
-            stdout, self._plugin_manager.generate_loaded_plugins_table())
+            stdout, self.__plugin_manager.generate_loaded_plugins_table())
 
 def run():
     """

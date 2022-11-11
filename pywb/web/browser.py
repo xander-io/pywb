@@ -1,5 +1,4 @@
-from abc import ABC
-from enum import Enum
+from abc import ABC, abstractmethod
 from os import environ, mkdir, path
 from time import sleep
 from urllib.parse import urlparse
@@ -8,25 +7,26 @@ from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
 from pywb.web.result import Result
 
-BrowserType = Enum("BrowserType", ["CHROME"])
-By = Enum("By",
-          {"BUTTON": "//button[text()='%s']",
-           "LINK": "//a[text()='%s']",
-           "TEXT": "//*[not(self::a) and not(self::button) and text()='%s']"})
-
 
 class _Browser(ABC):
 
-    def __init__(self, driver) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self._driver = driver
+        self._driver = None
         self._window_map = {}
 
     def quit(self):
         if self._driver:
             self._driver.quit()
 
+    @abstractmethod
+    def _load_driver(self):
+        pass
+
     def load_urls(self, urls) -> None:
+        if not self._driver:
+            self._load_driver()
+
         for i in range(len(urls)):
             url = urls[i]
             # Only need to load the url once

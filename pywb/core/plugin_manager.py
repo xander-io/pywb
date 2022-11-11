@@ -45,6 +45,11 @@ class PluginManager(object):
         self.__loaded_plugins |= plugins
         return n_plugins_found
 
+    @property
+    def loaded_plugins(self):
+        # Return a shallow copy of the loaded plugins
+        return self.__loaded_plugins.copy()
+
     def generate_loaded_plugins_table(self) -> str:
         plugin_list = []
         columns = []

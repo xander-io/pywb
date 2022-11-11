@@ -1,7 +1,7 @@
 from enum import Enum
 from pywb.core.logger import logger
 from pywb.core.plugin import Plugin
-from pywb.web.browser import By
+from pywb.web import By
 
 
 class InStockNotifier(Plugin):
