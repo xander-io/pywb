@@ -20,12 +20,17 @@ class _Browser(ABC):
             self._driver.quit()
 
     @abstractmethod
-    def _load_driver(self):
+    def load_driver(self) -> None:
+        pass
+
+    @abstractmethod
+    def emulate_location(self, lat, long) -> None:
         pass
 
     def load_urls(self, urls) -> None:
         if not self._driver:
-            self._load_driver()
+            raise RuntimeError(
+                "Unable to load urls - driver has not been loaded!")
 
         for i in range(len(urls)):
             url = urls[i]
