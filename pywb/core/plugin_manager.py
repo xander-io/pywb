@@ -1,4 +1,6 @@
+from copy import deepcopy
 from importlib.util import module_from_spec, spec_from_file_location
+from inspect import getfile
 from os import path, walk
 from pathlib import Path
 from sys import modules
@@ -48,17 +50,22 @@ class PluginManager(object):
     @property
     def loaded_plugins(self):
         # Return a shallow copy of the loaded plugins
-        return self.__loaded_plugins.copy()
+        return deepcopy(self.__loaded_plugins)
 
     def generate_loaded_plugins_table(self) -> str:
         plugin_list = []
         columns = []
+        w_plugin_name = 20
+        w_module_path = 90
 
         for k, v in self.__loaded_plugins.items():
-            plugin_list.append([str(k), str(v)])
+            module_path = getfile(v)
+            if len(module_path) > w_module_path:
+                module_path = "%s..." % module_path[:(w_module_path-3)]
+            plugin_list.append([str(k), module_path])
 
         n_plugins = len(plugin_list)
-        columns.append(Column("Plugin Name", width=20))
-        columns.append(Column("Module Path", width=68))
+        columns.append(Column("Plugin Name", width=w_plugin_name))
+        columns.append(Column("Module Path", width=w_module_path))
         t = SimpleTable(columns)
         return ("\n %s\n\nTOTAL PLUGINS LOADED: (%s)\n\n") % (t.generate_table(plugin_list), n_plugins)
