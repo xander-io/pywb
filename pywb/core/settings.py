@@ -17,7 +17,7 @@ class Settings(object):
     def __init__(self, app_ctx: Cmd) -> None:
         # Internal - Defaults
         self.actions_path = None
-        
+
         # Custom settable attributes - Defaults
         self.__browser = "Chrome"
         self.__refresh_rate = 60
@@ -41,7 +41,7 @@ class Settings(object):
             Settable(self.PARAM_REMOTE_NOTIFICATIONS, bool, "Receive remote notifcations from pywb",
                      self, onchange_cb=app_ctx.change_setting))
         app_ctx.add_settable(
-            Settable(self.PARAM_GEOLOCATION, str, "Zipcode for emulating geolocation on websites",
+            Settable(self.PARAM_GEOLOCATION, str, "Used for emulating location (format: [lat],[long])",
                      self, onchange_cb=app_ctx.change_setting))
 
     @property
