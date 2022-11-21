@@ -21,7 +21,7 @@ def _init_logging(output_path=DEFAULT_LOG_PATH):
         f_logger.setLevel(logging.DEBUG
                           if ENVIRON_DEBUG_KEY in environ else logging.INFO)
 
-    f_handler = logging.FileHandler(output_path, "a")
+    f_handler = logging.FileHandler(output_path, "w")
     f_handler.setFormatter(formatter)
     f_logger.addHandler(f_handler)
     return f_logger
