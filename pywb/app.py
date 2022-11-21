@@ -7,17 +7,19 @@ Functions
 """
 
 from argparse import Namespace
+from atexit import register
 from sys import exit, stdout
+from time import sleep
 
-from cmd2 import Cmd, Cmd2ArgumentParser, Settable, ansi, with_argparser
+from cmd2 import Cmd, Cmd2ArgumentParser, ansi, with_argparser
 
 from pywb.ascii.ascii import generate_ascii_art
 from pywb.core.action import parse_actions
-from pywb.core.logger import DEFAULT_LOG_PATH, set_logger_output_path
 from pywb.core.notifier import Notifier
 from pywb.core.plugin_manager import PluginManager
-from pywb.core.run_manager import RunManager
+from pywb.core.run_manager import RunManager, RunManagerStatus
 from pywb.core.runner import RunConfig
+from pywb.core.settings import Settings
 from pywb.web import BrowserType
 
 
@@ -39,52 +41,18 @@ class _App(Cmd):
         None
         """
         super().__init__()
-        self.__delete_cmd2_builtins()
-        self.__init_settings()
-        self.__init_managers()
-
-    def __init_managers(self):
-        self.__plugin_manager = PluginManager()
-        self.__run_manager = None
-
-    def __init_settings(self):
         # Set defaults
         self.prompt = "(pywb) > "
-        self.browser = "Chrome"
-        self.interval = 30
-        self.log_path = DEFAULT_LOG_PATH
-        self.remote_notifications = False
-
-        # Add custom settings
-        self.add_settable(
-            Settable("browser", str, "Browser used by pywb (Supported: %s)"
-                     % str([i.name.capitalize() for i in BrowserType]),
-                     self, onchange_cb=self.__on_browser_change))
-        self.add_settable(
-            Settable("interval", int, "Interval in seconds to poll actions", self))
-        self.add_settable(Settable("log_path", str, "Path to log file for web bot output",
-                          self, onchange_cb=lambda _p, _o, new_path: set_logger_output_path(new_path)))
-        self.add_settable(
-            Settable("remote_notifications", bool, "Receive remote notifcations from pywb", self))
-
-    def __delete_cmd2_builtins(self):
-        delattr(Cmd, "do_alias")
-        delattr(Cmd, "do_macro")
-        self.remove_settable("debug")
-
-    def __on_browser_change(self, _p, _o, new_browser):
-        try:
-            # Attempt to set new browser type
-            tmp = BrowserType[new_browser.upper()]
-        except:
-            raise ValueError("Browser '%s' is unsupported" % new_browser)
-        # Format string
-        self.browser = new_browser.capitalize()
+        self.__plugin_manager = PluginManager()
+        self.__run_manager = RunManager()
+        self.__settings = Settings(self)
 
     def cmdloop(self, intro=None):
+        register(self.__shutdown_bot)
         self.poutput(intro)
         self.__plugin_manager.load_builtin_plugins()
-        self.__display_plugins()
+        self.__write_ansi_table(
+            self.__plugin_manager.generate_loaded_plugins_table)
 
         # Custom cmdloop that catches multiple keyboard interrupts
         while True:
@@ -94,62 +62,101 @@ class _App(Cmd):
             except KeyboardInterrupt:
                 self.poutput("^C")
 
+    def __shutdown_bot(self):
+        self.__stop_bot_service(blocking=True)
+        self.poutput("Goodbye :)")
+
     # Parser for example command
     bot_cmd_parser = Cmd2ArgumentParser(description="Command web bot service")
-    service = bot_cmd_parser.add_subparsers(title="service controls", help="controls the bot's state")
-    start = service.add_parser("start", help="start")
+    service = bot_cmd_parser.add_subparsers(
+        title="service controls", help="controls the bot's state")
+    start = service.add_parser("start", help="starts the pywb service")
     start.add_argument("--actions", "-a", completer=Cmd.path_complete,
-                            help="actions yaml file for the web bot to run")
-    stop = service.add_parser("stop", help="stop")
-    status = service.add_parser("status", help="status")
+                       help="actions yaml file for the web bot to run")
+    restart = service.add_parser("restart", help="restarts the pywb service")
+    stop = service.add_parser("stop", help="stops the pywb service")
+    status = service.add_parser(
+        "status", help="gets a status on the state of the pywb service")
 
     @with_argparser(bot_cmd_parser)
     def do_bot(self, ns: Namespace) -> None:
-        statement = ns.cmd2_statement.get()
-        service_cmd = statement.args.split()[0]
-        if service_cmd == "start":
-            self.__start_bot_service(ns)
-        elif service_cmd == "status":
-            self.poutput("No status at this time :)")
-        else:
-            self.__stop_bot_service()
-
-
-    def __start_bot_service(self, ns): 
-        # Only can have one run manager
-        if self.__run_manager and self.__run_manager.is_alive():
-            self.perror("The pywb service is already running!")
-        elif not ns.actions:
-            self.perror("Unable to start pywb service - Missing actions .yaml file")
-        else:
-            # Parse the actions from the yaml file
-            actions = parse_actions(ns.actions)
-            # Get a local copy of the plugins loaded right now
-            plugins = self.__plugin_manager.loaded_plugins
-            default_run_cfg = RunConfig(interval=self.interval,
-                                        notifier=Notifier(
-                                            remote_notifications=self.remote_notifications))
-
-            self.__run_manager = RunManager(actions, plugins, BrowserType[self.browser.upper()].value, default_run_cfg)
-            self.__run_manager.start()
-    
-    def __stop_bot_service(self):
-        if not self.__run_manager:
+        statement_args = ns.cmd2_statement.get().args.split()
+        if len(statement_args) == 0:
+            self.__write_ansi_table(self.__run_manager.generate_status_table,
+                                    extended=(self.__run_manager.status == RunManagerStatus.RUNNING))
             return
 
-        self.__run_manager.shut_down()
-        self.poutput("Shutdown signaled for pywb service...")
-        self.__run_manager.join()
-        self.poutput("Successfully stopped the pywb service!")
-        self.__run_manager = None
+        service_cmd = statement_args[0]
+        if service_cmd == "start":
+            if not ns.actions:
+                self.perror(
+                    "Unable to start pywb service - Missing actions .yaml file")
+                return
+            self.__start_bot_service(ns.actions)
+        elif service_cmd == "restart":
+            actions_path = self.__run_manager.run_cfg.actions_path
+            # Stop the service
+            self.__stop_bot_service(blocking=True)
+            # Start the copied run manager
+            self.__start_bot_service(actions_path)
+        elif service_cmd == "status":
+            self.__write_ansi_table(self.__run_manager.generate_status_table,
+                                    extended=(self.__run_manager.status == RunManagerStatus.RUNNING))
+        elif service_cmd == "stop":
+            # Stop the service
+            self.__stop_bot_service()
 
+    def __start_bot_service(self, actions_path):
+        # Only can have one run manager
+        if self.__run_manager.status >= RunManagerStatus.SHUTTING_DOWN:
+            self.perror("The pywb service is already running!")
+            return
+
+        # Parse the actions from the yaml file
+        actions = parse_actions(actions_path)
+        # Get a local copy of the plugins loaded right now
+        plugins = self.__plugin_manager.loaded_plugins
+        run_cfg = RunConfig(actions_path=actions_path,
+                            refresh_rate=self.__settings.refresh_rate,
+                            geolocation=self.__settings.geolocation,
+                            notifier=Notifier(
+                                remote_notifications=self.__settings.remote_notifications))
+        # Not started only is set when the thread is new
+        self.__run_manager = RunManager(
+            actions=actions, plugins=plugins, browser=BrowserType[self.__settings.browser.upper()].value, run_cfg=run_cfg)
+
+        # Detaching run manager execution from cmd2 to respond to ctrl+d properly - using atexit.register to cleanup properly
+        self.__run_manager.daemon = True
+        self.__run_manager.start()
+        while self.__run_manager.status != RunManagerStatus.RUNNING:
+            sleep(1)
+        self.__write_ansi_table(self.__run_manager.generate_status_table)
+
+    def __stop_bot_service(self, blocking=False):
+        if self.__run_manager.status >= RunManagerStatus.STARTED:
+            self.__run_manager.shut_down()
+            self.poutput("Shutdown signaled for pywb service...")
+            if blocking:
+                self.__run_manager.join()
+            self.__write_ansi_table(
+                self.__run_manager.generate_status_table, extended=False)
 
     def do_plugins(self, _: Namespace) -> None:
-        self.__display_plugins()
+        self.__write_ansi_table(
+            self.__plugin_manager.generate_loaded_plugins_table)
 
-    def __display_plugins(self) -> None:
+    def __write_ansi_table(self, table_func, **kwargs) -> None:
         ansi.style_aware_write(
-            stdout, self.__plugin_manager.generate_loaded_plugins_table())
+            stdout, table_func(**kwargs))
+
+    # Callback for Cmd settables
+    def change_setting(self, param, _, new_v):
+        setattr(self.__settings, param, new_v)
+
+        if self.__run_manager.status == RunManagerStatus.RUNNING and param in Settings.PARAMS_RESTART_REQUIRED:
+            self.pwarning(
+                "WARNING: Run 'bot restart' to apply %s changes" % param)
+
 
 def run():
     """

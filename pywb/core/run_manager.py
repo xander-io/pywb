@@ -1,29 +1,67 @@
-from threading import ThreadError, Thread
-from typing import List, Dict
+from copy import deepcopy
+from enum import Enum
+from threading import Thread
+from typing import Dict, List
 
-from pywb.core.logger import logger
-from pywb.core.runner import RunConfig, Runner
+from cmd2.table_creator import Column, SimpleTable
+
 from pywb.core.action import Action
+from pywb.core.logger import logger
 from pywb.core.plugin import Plugin
+from pywb.core.runner import RunConfig, Runner
 from pywb.web.browser import _Browser
 
 
+class RunManagerStatus(Enum):
+    NOT_STARTED = 0
+    STOPPED = 1
+    SHUTTING_DOWN = 2
+    STARTED = 3
+    RUNNING = 4
+
+    def __gt__(self, other: object):
+        if self.__class__ is other.__class__:
+            return self.value > other.value
+        return NotImplemented
+
+    def __ge__(self, other: object):
+        if self.__class__ is other.__class__:
+            return self.value >= other.value
+        return NotImplemented
+
+    def __lt__(self, other: object):
+        if self.__class__ is other.__class__:
+            return self.value < other.value
+        return NotImplemented
+
+    def __le__(self, other: object):
+        if self.__class__ is other.__class__:
+            return self.value <= other.value
+        return NotImplemented
+
+
 class RunManager(Thread):
-    def __init__(self, actions: List[Action], plugins: Dict[str, Plugin], browser: _Browser, default_run_cfg: RunConfig) -> None:
+    def __init__(self, actions: List[Action] = None, plugins: Dict[str, Plugin] = None,
+                 browser: _Browser = None, run_cfg: RunConfig = None) -> None:
         super().__init__()
-        self.__default_run_cfg = default_run_cfg
+        self.run_cfg = run_cfg
         self.__actions = actions
         self.__runners = []
         self.__plugins = plugins
         self.__browser = browser
         self.__shut_down = False
+        self.status = RunManagerStatus.NOT_STARTED
 
     def run(self):
+        assert (self.__actions and self.__plugins
+                and self.__browser and self.run_cfg), "Critical Error - RunManager did not get initialized properly"
+        self.status = RunManagerStatus.STARTED
         self.__delegate_and_wait()
 
     def __delegate_and_wait(self) -> None:
         self.__actions_to_runners()
         self.__start_runners()
+        self.status = RunManagerStatus.RUNNING
         # Waiting for runners to finish executing
         self.__wait_for_runners()
 
@@ -38,10 +76,11 @@ class RunManager(Thread):
                     "Unable to find plugin %s from loaded external plugins" % action.plugin_name)
 
             # Create a new run config with the action
-            new_cfg = RunConfig.from_run_config(self.__default_run_cfg)
-            new_cfg.actions = [action]
+            new_cfg = deepcopy(self.run_cfg)
+            new_cfg.action = deepcopy(action)
             # Add a new runner with the config and plugin
-            self.__runners.append(Runner(self.__plugins[action.plugin_name], self.__browser, new_cfg))
+            self.__runners.append(
+                Runner(self.__plugins[action.plugin_name], self.__browser, new_cfg))
 
     def __wait_for_runners(self) -> None:
         runner_timeout = 60 * 5
@@ -60,8 +99,10 @@ class RunManager(Thread):
                         rogue_plugin = True
                         break
         if rogue_plugin:
-            logger.error("One or more plugins did not clean up properly... Forcing thread exit!")
+            logger.error(
+                "One or more plugins did not clean up properly... Forcing thread exit!")
         logger.info("Runners have completed execution... tearing down")
+        self.status = RunManagerStatus.STOPPED
 
     def shut_down(self) -> None:
         # Signal shut_down for each runner
@@ -70,3 +111,25 @@ class RunManager(Thread):
 
         # Wait for runners to finish execution
         self.__shut_down = True
+        self.status = RunManagerStatus.SHUTTING_DOWN
+
+    def generate_status_table(self, extended=True) -> str:
+        columns = [Column("Service", width=50), Column("Status", width=20)]
+        status = [["Python Web Bot (pywb) Service", str(self.status.name)]]
+        status_str = SimpleTable(columns).generate_table(status)
+
+        runner_data = []
+        runner_str = ""
+        if extended:
+            columns = [Column("Runner ID", width=15),
+                       Column("Action Title", width=50), Column("Plugin", width=20)]
+            for i in range(len(self.__runners)):
+                runner = self.__runners[i]
+                runner_data.append(
+                    [i, "'%s'" % runner.action.title, str(runner.plugin)])
+
+            if len(runner_data) > 0:
+                runner_str = "\n\n\n%s\n\nTOTAL RUNNERS: (%s)" % (
+                    SimpleTable(columns).generate_table(runner_data), len(runner_data))
+
+        return ("\n%s%s\n\n" % (status_str, runner_str))
