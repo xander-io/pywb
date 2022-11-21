@@ -1,4 +1,5 @@
 from enum import Enum
+
 from pywb.core.logger import logger
 from pywb.core.plugin import Plugin
 from pywb.web import By
@@ -18,58 +19,58 @@ class InStockNotifier(Plugin):
         super().__init__(__class__.__name__, self.VERSION)
 
     def __validate_action_kwargs(self) -> None:
-        for action in self._actions:
-            for k, v in action.kwargs.items():
-                if type(v) != list:
-                    raise ValueError(
-                        "For action '%s' - '%s' must be a list" % (action.title, k))
-                if len(v) != len(action.urls):
-                    raise ValueError(
-                        "For action '%s' - '%s' must have %s values" % (action.title, k, len(action.urls)))
+        for k, v in self._action.kwargs.items():
+            if type(v) != list:
+                raise ValueError(
+                    "For self._action '%s' - '%s' must be a list" % (self._action.title, k))
+            if len(v) != len(self._action.urls):
+                raise ValueError(
+                    "For self._action '%s' - '%s' must have %s values" % (self._action.title, k, len(self._action.urls)))
 
-    def init_run(self, actions, interval, notifier, browser) -> None:
-        super().init_run(actions, interval, notifier, browser)
+    def initialize(self, browser, run_cfg) -> None:
+        super().initialize(browser, run_cfg)
+
+    def validate(self) -> None:
+        super().validate()
         self.__validate_action_kwargs()
 
-    def start(self) -> None:
-        super().start()
-        # Combine action properties into one list
-        for action in self._actions:
-            # Replace watch and notify string strings with element types
-            action.kwargs[self.ACTION_KWARG_WATCH] = [By[watch_type.upper()]
-                                                      for watch_type in action.kwargs[self.ACTION_KWARG_WATCH]]
-            action.kwargs[self.ACTION_KWARG_NOTIFY_ON] = [self.NotifyOnType[notify_type.upper()]
-                                                          for notify_type in action.kwargs[self.ACTION_KWARG_NOTIFY_ON]]
+    def run(self) -> None:
+        super().run()
+        # Replace watch and notify string strings with element types
+        self._action.kwargs[self.ACTION_KWARG_WATCH] = [By[watch_type.upper()]
+                                                        for watch_type in self._action.kwargs[self.ACTION_KWARG_WATCH]]
+        self._action.kwargs[self.ACTION_KWARG_NOTIFY_ON] = [self.NotifyOnType[notify_type.upper()]
+                                                            for notify_type in self._action.kwargs[self.ACTION_KWARG_NOTIFY_ON]]
 
         while not self._shut_down:
-            for action in self._actions:
-                self.__notify_changes(action, self._browser.scrape(
-                    action.urls, action.kwargs[self.ACTION_KWARG_WATCH], action.kwargs[self.ACTION_KWARG_TEXT]))
-            self._sleep_on_interval()
+            self.__notify_changes(self._browser.scrape(
+                self._action.urls, self._action.kwargs[self.ACTION_KWARG_WATCH], self._action.kwargs[self.ACTION_KWARG_TEXT]))
+            self._sleep_on_refresh_rate()
             if not self._shut_down:
                 self._browser.refresh_sites()
 
     def stop(self) -> None:
         return super().stop()
 
-    def __notify_changes(self, action, scrape_results) -> None:
-        stats = self.__compile_results(action.urls, scrape_results)
-        if action.title not in self.__baseline:
-            logger.info("Tracking changes for action '%s'" % action.title)
-            self.__baseline[action.title] = stats
+    def __notify_changes(self, scrape_results) -> None:
+        stats = self.__compile_results(self._action.urls, scrape_results)
+        if self._action.title not in self.__baseline:
+            logger.info("Tracking changes for action '%s'" %
+                        self._action.title)
+            self.__baseline[self._action.title] = stats
 
-        for i in range(len(action.urls)):
+        for i in range(len(self._action.urls)):
             notify = False
-            url = action.urls[i]
-            watch_type = action.kwargs[self.ACTION_KWARG_WATCH][i]
-            notify_type = action.kwargs[self.ACTION_KWARG_NOTIFY_ON][i]
-            text = action.kwargs[self.ACTION_KWARG_TEXT][i]
-            notify |= (stats[url] > self.__baseline[action.title]
-                       [url] and notify_type == self.NotifyOnType.APPEAR)
-            notify |= ((stats[url] < self.__baseline[action.title][url]
+            url = self._action.urls[i]
+            watch_type = self._action.kwargs[self.ACTION_KWARG_WATCH][i]
+            notify_type = self._action.kwargs[self.ACTION_KWARG_NOTIFY_ON][i]
+            text = self._action.kwargs[self.ACTION_KWARG_TEXT][i]
+            notify |= (stats[url] > self.__baseline[self._action.title][url]
+                       or stats[url] != 0 and notify_type == self.NotifyOnType.APPEAR)
+            notify |= ((stats[url] < self.__baseline[self._action.title][url]
                         or stats[url] == 0) and notify_type == self.NotifyOnType.DISAPPEAR)
             if notify:
-                title = "'%s'" % action.title
+                title = "'%s'" % self._action.title
                 message = "%s:%s['%s']" % (
                     str(watch_type), str(notify_type), text)
                 logger.info("**** %s: %s (%s) ****" % (title, message, url))
