@@ -51,6 +51,7 @@ class _Browser(ABC):
                              expected_handles)
                 sleep(0.5)
             self._window_map[url] = self._driver.window_handles[i]
+            self.__wait_on_loading_page()
 
     def switch_to(self, window_handle) -> None:
         if self._driver.current_window_handle != window_handle:
@@ -61,6 +62,16 @@ class _Browser(ABC):
         for _, window_handle in self._window_map.items():
             self.switch_to(window_handle)
             self._driver.refresh()
+            self.__wait_on_loading_page()
+    
+    def __wait_on_loading_page(self) -> None:
+        logger.debug("Checking if {} page is loaded.".format(self._driver.current_url))
+        page_state = ""
+        while page_state != "complete":
+            page_state = self._driver.execute_script('return document.readyState;')
+            if page_state != "complete":
+                logger.debug("Page has not loaded yet... Waiting")
+            sleep(1)
 
     def scrape(self, urls, bys, texts) -> list[Result]:
         if not self._window_map:
