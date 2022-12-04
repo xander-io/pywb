@@ -1,6 +1,7 @@
 from os import environ
 from threading import Thread
 from time import sleep
+from traceback import format_exc
 
 from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
@@ -51,9 +52,13 @@ class Runner(Thread):
         except Exception as e:
             # Generically catching errors as a catch-all for any exceptions thrown by the plugin
             if (self._err_from_driver(e)):
-                logger.debug(self.__plugin.name + ": " + str(e))
+                logger.debug("%s: %s\n%s" %
+                             (self.__plugin.name, str(e), format_exc()))
             else:
-                logger.error(self.__plugin.name + ": " + str(e))
+                err_str = "%s: %s" % (self.__plugin.name, str(e))
+                if ENVIRON_DEBUG_KEY in environ:
+                    err_str += "\n%s" % format_exc()
+                logger.error(err_str)
         self.__browser.quit()
 
     def _err_from_driver(self, err):
