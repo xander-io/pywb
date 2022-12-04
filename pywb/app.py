@@ -133,13 +133,17 @@ class _App(Cmd):
         self.__write_ansi_table(self.__run_manager.generate_status_table)
 
     def __stop_bot_service(self, blocking=False):
-        if self.__run_manager.status >= RunManagerStatus.STARTED:
+        service_is_running = self.__run_manager.status >= RunManagerStatus.STARTED
+        if service_is_running:
             self.__run_manager.shut_down()
-            self.poutput("Shutdown signaled for pywb service...")
+            self.poutput("Stop signaled for pywb service...")
             if blocking:
                 self.__run_manager.join()
             self.__write_ansi_table(
                 self.__run_manager.generate_status_table, extended=False)
+        # Service is already shutting down from anotehr thread
+        elif blocking and self.__run_manager.is_alive():
+            self.__run_manager.join()
 
     def do_plugins(self, _: Namespace) -> None:
         self.__write_ansi_table(
