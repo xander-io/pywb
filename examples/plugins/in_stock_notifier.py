@@ -1,4 +1,8 @@
+from datetime import datetime, timedelta
 from enum import Enum
+from urllib.parse import urlparse
+
+from pywb.core.action import Action
 from pywb.core.logger import logger
 from pywb.core.plugin import Plugin
 from pywb.web import By
@@ -14,7 +18,8 @@ class InStockNotifier(Plugin):
     NotifyOnType = Enum("NotifyOnType", ["APPEAR", "DISAPPEAR"])
 
     def __init__(self) -> None:
-        self.__baseline = {}
+        self.__element_baseline = {}
+        self.__last_notify_time = {}
         super().__init__(__class__.__name__, self.VERSION)
 
     def __validate_action_kwargs(self) -> None:
@@ -53,27 +58,54 @@ class InStockNotifier(Plugin):
 
     def __notify_changes(self, scrape_results) -> None:
         stats = self.__compile_results(self._action.urls, scrape_results)
-        if self._action.title not in self.__baseline:
-            logger.info("Tracking changes for action '%s'" %
-                        self._action.title)
-            self.__baseline[self._action.title] = stats
+        if not self.__element_baseline:
+            self.__element_baseline = stats
+            baseline_str = "\n".join(["URL=[%s], Baseline # of Elements=[%s]" % (
+                k, v) for k, v in self.__element_baseline.items()])
+            logger.info("Tracking changes for action '%s'\n%s" %
+                        (self._action.title, baseline_str))
 
         for i in range(len(self._action.urls)):
-            notify = False
+            notification = None
             url = self._action.urls[i]
-            watch_type = self._action.kwargs[self.ACTION_KWARG_WATCH][i]
             notify_type = self._action.kwargs[self.ACTION_KWARG_NOTIFY_ON][i]
             text = self._action.kwargs[self.ACTION_KWARG_TEXT][i]
-            notify |= (stats[url] > self.__baseline[self._action.title][url]
-                       or stats[url] != 0 and notify_type == self.NotifyOnType.APPEAR)
-            notify |= ((stats[url] < self.__baseline[self._action.title][url]
-                        or stats[url] == 0) and notify_type == self.NotifyOnType.DISAPPEAR)
-            if notify:
-                title = "'%s'" % self._action.title
-                message = "%s:%s['%s']" % (
-                    str(watch_type), str(notify_type), text)
-                logger.info("**** %s: %s (%s) ****" % (title, message, url))
-                self._notifier.notify(title, message, url)
+            netloc = urlparse(url).netloc
+
+            notification_duration = (datetime.now(
+            ) - self.__last_notify_time[url]) if url in self.__last_notify_time else timedelta()
+
+            # NOTE: Notification works in two ways, (1) on APPEAR, the # of elements from the baseline has increased
+            # (2) on DISAPPEAR, the # of elements from the baseline has decreased OR there are no elements found on the page
+            # For APPEAR, the plugin doesn't notify if elements are present but haven't increased from the baseline - don't want to misfire on irrelevant elements
+            if notify_type == self.NotifyOnType.APPEAR:
+                # On appear, only send the notification once per hour if already sent
+                if stats[url] > self.__element_baseline[url] and (notification_duration >= timedelta(hours=1) or not url in self.__last_notify_time):
+                    self.__last_notify_time[url] = datetime.now()
+                    notification = ("ALERT: '%s'" % self._action.title, "'%s' has appeared at %s" % (
+                        text, netloc))
+                # On appear, send a notification if we've reported the element appeared in the past but now it's gone
+                elif stats[url] == self.__element_baseline[url] and url in self.__last_notify_time:
+                    # Reset the last notify time
+                    del self.__last_notify_time[url]
+                    notification = ("NOTICE: '%s'" % self._action.title, "'%s' no longer appears at %s" % (
+                        text, netloc))
+            elif notify_type == self.NotifyOnType.DISAPPEAR:
+                if (stats[url] < self.__element_baseline[url] or stats[url] == 0) and \
+                        (notification_duration >= timedelta(hours=1) or not url in self.__last_notify_time):
+                    self.__last_notify_time[url] = datetime.now()
+                    notification = ("ALERT: '%s'" % self._action.title, "'%s' disappeared at %s" % (
+                        text, netloc))
+                # On disappear, send a notification if we've reported the element gone in the past
+                elif stats[url] == self.__element_baseline[url] and stats[url] > 0 and url in self.__last_notify_time:
+                    # Reset the last notify time
+                    del self.__last_notify_time[url]
+                    notification = ("NOTICE: '%s'" % self._action.title, "'%s' has reappeared at %s" % (
+                        text, netloc))
+            if notification:
+                title, msg = notification
+                logger.info("**** %s: %s (%s) ****" % (title, msg, netloc))
+                self._notifier.notify(title, msg, netloc)
 
     def __compile_results(self, urls, scrape_results) -> dict:
         stats = {}
