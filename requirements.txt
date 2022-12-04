@@ -4,4 +4,6 @@ pyyaml >= 5.3.1
 notify-run >= 0.0.13
 psutil >= 5.7.2
 cmd2 >= 2.4.2
-pyreadline3 >= 3.4.1; sys_platform == 'win32'
+pyreadline3 >= 3.4.1; platform_system == "Windows"
+gnureadline3; platform_system == "Linux" or platform_system == "Mac"
+desktop_notifier >= 3.4.2
