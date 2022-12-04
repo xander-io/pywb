@@ -2,6 +2,7 @@ import os
 
 from notify_run import Notify as RemoteNotify
 from notifypy import Notify as LocalNotify
+
 from pywb.core.logger import logger
 
 
@@ -25,6 +26,7 @@ class Notifier(object):
                 # Windows cmd/powershell does not display QR code properly - stripping it off
                 self._remote_notify_info = self._remote_notify_info[:self._remote_notify_info.index(
                     "Or scan this QR code")]
+            logger.info(self._remote_notify_info)
 
     def notify_info(self) -> str:
         notify_info = "\n\n************************** NOTIFICATIONS ****************************\n"
