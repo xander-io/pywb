@@ -33,7 +33,7 @@ class Plugin(ABC):
             self._browser.emulate_location(g_lat, g_long)
         else:
             logger.warning(
-                "No geolocation information given - Loading browser without emulating location")
+                "No geolocation information given - Attempting to load browser using current location")
         self._run_initialized = True
 
     def __load_urls(self):
