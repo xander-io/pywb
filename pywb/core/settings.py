@@ -45,16 +45,20 @@ class Settings(object):
                      self, onchange_cb=app_ctx.change_setting))
 
     @property
+    def remote_notifications(self):
+        return self.__remote_notifications
+
+    @remote_notifications.setter
+    def remote_notifications(self, new_rn):
+        self.__remote_notifications = new_rn
+
+    @property
     def log_path(self):
         return self.__log_path
 
     @log_path.setter
     def log_path(self, new_log_path):
         set_logger_output_path(new_log_path)
-
-    @property
-    def remote_notifications(self):
-        return self.__remote_notifications
 
     @property
     def refresh_rate(self):
