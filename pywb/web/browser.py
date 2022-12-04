@@ -1,5 +1,4 @@
-from abc import ABC
-from enum import Enum
+from abc import ABC, abstractmethod
 from os import environ, mkdir, path
 from time import sleep
 from urllib.parse import urlparse
@@ -8,25 +7,31 @@ from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
 from pywb.web.result import Result
 
-BrowserType = Enum("BrowserType", ["CHROME"])
-By = Enum("By",
-          {"BUTTON": "//button[text()='%s']",
-           "LINK": "//a[text()='%s']",
-           "TEXT": "//*[not(self::a) and not(self::button) and text()='%s']"})
-
 
 class _Browser(ABC):
 
-    def __init__(self, driver) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self._driver = driver
+        self._driver = None
         self._window_map = {}
 
     def quit(self):
         if self._driver:
             self._driver.quit()
 
+    @abstractmethod
+    def load_driver(self) -> None:
+        pass
+
+    @abstractmethod
+    def emulate_location(self, lat, long) -> None:
+        pass
+
     def load_urls(self, urls) -> None:
+        if not self._driver:
+            raise RuntimeError(
+                "Unable to load urls - driver has not been loaded!")
+
         for i in range(len(urls)):
             url = urls[i]
             # Only need to load the url once
@@ -46,6 +51,7 @@ class _Browser(ABC):
                              expected_handles)
                 sleep(0.5)
             self._window_map[url] = self._driver.window_handles[i]
+            self.__wait_on_loading_page()
 
     def switch_to(self, window_handle) -> None:
         if self._driver.current_window_handle != window_handle:
@@ -56,6 +62,18 @@ class _Browser(ABC):
         for _, window_handle in self._window_map.items():
             self.switch_to(window_handle)
             self._driver.refresh()
+            self.__wait_on_loading_page()
+    
+    def __wait_on_loading_page(self) -> None:
+        page_state = ""
+        logger.debug("Waiting for {} page to be loaded.".format(self._driver.current_url))
+        while page_state != "complete":
+            page_state = self._driver.execute_script('return document.readyState;')
+            if page_state != "complete":
+                logger.debug("Page has not loaded yet... Waiting")
+            sleep(1)
+        logger.debug("Page successfully loaded")
+
 
     def scrape(self, urls, bys, texts) -> list[Result]:
         if not self._window_map:

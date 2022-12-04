@@ -1,35 +1,30 @@
+from os import environ
 from threading import Thread
 from time import sleep
-from os import environ
+from traceback import format_exc
 
 from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
-from pywb.web.browser import BrowserType
 from pywb.web.chrome import Chrome
 
 
 class RunConfig(object):
-    def __init__(self, action=None, interval=None, notifier=None, browser_type=BrowserType.CHROME) -> None:
-        self.actions = action
-        self.interval = interval
+    def __init__(self, action=None, actions_path=None, refresh_rate=None, geolocation=None, notifier=None) -> None:
+        self.action = action
+        self.actions_path = actions_path
+        self.refresh_rate = refresh_rate
+        self.geolocation = geolocation
         self.notifier = notifier
-        self.browser_type = browser_type
-
-    @classmethod
-    def from_run_config(cls, run_cfg) -> 'RunConfig':
-        new_cfg = cls()
-        new_cfg.__dict__.update(run_cfg.__dict__)
-        return new_cfg
 
 
 class Runner(Thread):
-    def __init__(self, plugin, run_cfg) -> None:
+    def __init__(self, plugin, browser, run_cfg) -> None:
         super().__init__()
-        self._run_cfg = run_cfg
-        self._plugin = plugin()
-        self._browser = None
+        self.__run_cfg = run_cfg
+        self.__plugin = plugin()
+        self.__browser = browser()
         logger.debug("Initialized runner for plugin '%s'..." %
-                     str(self._plugin.name))
+                     str(self.__plugin.name))
 
     def _send_notification(self, site):
         site_item = site.get_item_name()
@@ -40,20 +35,31 @@ class Runner(Thread):
             site.get_url()
         )
 
+    @property
+    def action(self):
+        return self.__run_cfg.action
+
+    @property
+    def plugin(self):
+        return self.__plugin
+
     def run(self):
         try:
-            self._browser = self.__run_browser()
-            self._plugin.init_run(self._run_cfg.actions, self._run_cfg.interval,
-                                  self._run_cfg.notifier, self._browser)
-            logger.info("\n" + self._plugin.ascii())
-            self._plugin.start()
+            self.__plugin.initialize(self.__browser, self.__run_cfg)
+            self.__plugin.validate()
+            logger.info("\n" + self.__plugin.ascii())
+            self.__plugin.run()
         except Exception as e:
             # Generically catching errors as a catch-all for any exceptions thrown by the plugin
             if (self._err_from_driver(e)):
-                logger.debug(self._plugin.name + ": " + str(e))
+                logger.debug("%s: %s\n%s" %
+                             (self.__plugin.name, str(e), format_exc()))
             else:
-                logger.error(self._plugin.name + ": " + str(e))
-        self.shut_down()
+                err_str = "%s: %s" % (self.__plugin.name, str(e))
+                if ENVIRON_DEBUG_KEY in environ:
+                    err_str += "\n%s" % format_exc()
+                logger.error(err_str)
+        self.__browser.quit()
 
     def _err_from_driver(self, err):
         # Common errors associated with the driver are from selenium and urllib3
@@ -61,12 +67,5 @@ class Runner(Thread):
         return hasattr(err, "__module__") and \
             ("selenium" in err.__module__ or "urllib3" in err.__module__)
 
-    def __run_browser(self):
-        if self._run_cfg.browser_type == BrowserType.CHROME:
-            return Chrome(headless=(not ENVIRON_DEBUG_KEY in environ))
-        else:
-            raise ValueError("Unsupported browser type '%s'" %
-                             self._run_cfg.browser_type.name.lower())
-
     def shut_down(self):
-        self._plugin.stop()
+        self.__plugin.stop()

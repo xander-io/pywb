@@ -1,7 +1,7 @@
-from os import path, walk
+from os import path, walk, environ
 from random import randint
 
-from pywb import VERSION
+from pywb import VERSION, ENVIRON_DEBUG_KEY
 
 
 def read_ascii():
@@ -22,4 +22,4 @@ def generate_ascii_path():
     return path.join(ascii_folder, fname)
 
 def generate_ascii_art():
-    return read_ascii() % VERSION
+    return (read_ascii() + "\n\n---%s") % (VERSION, ("\n" + "[DEBUG]"*13) if ENVIRON_DEBUG_KEY in environ else "")
