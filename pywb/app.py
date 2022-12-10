@@ -163,7 +163,7 @@ class _App(Cmd):
             setattr(SETTINGS, param, new_v)
         SETTINGS.save(param)
 
-        if self.__run_manager.status == RunManagerStatus.RUNNING and param in Settings.BOT_RESTART_REQUIRED:
+        if self.__run_manager.status == RunManagerStatus.RUNNING and param in SETTINGS.PARAMS_BOT_RESTART_REQUIRED:
             self.pwarning(
                 "WARNING: Run 'bot restart' to apply %s changes" % param)
 

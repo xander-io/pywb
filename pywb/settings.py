@@ -18,7 +18,7 @@ class Settings(object):
     CUSTOM_PARAMS = [__PARAM_BROWSER, __PARAM_REFRESH_RATE,
                      __PARAM_REMOTE_NOTIFICATIONS, __PARAM_GEOLOCATION, __PARAM_LOG_PATH]
 
-    BOT_RESTART_REQUIRED = [
+    PARAMS_BOT_RESTART_REQUIRED = [
         __PARAM_BROWSER, __PARAM_REFRESH_RATE, __PARAM_REMOTE_NOTIFICATIONS, __PARAM_GEOLOCATION]
 
     SAVE_FILE = path.join(path.dirname(__file__), "user_settings.json")
