@@ -14,12 +14,13 @@ from time import sleep
 from cmd2 import Cmd, Cmd2ArgumentParser, ansi, with_argparser
 
 from pywb.ascii.ascii import generate_ascii_art
-from pywb.core.action import parse_actions
 from pywb.core.logger import set_logger_output_path
-from pywb.core.notifier import Notifier
-from pywb.core.plugin_manager import PluginManager
-from pywb.core.run_manager import RunManager, RunManagerStatus
-from pywb.core.runner import RunConfig
+from pywb.core.notify.ifttt_notifier import IftttException, IftttNotifier
+from pywb.core.notify.local_notifier import LocalNotifier
+from pywb.core.plugin.plugin_manager import PluginManager
+from pywb.core.run.action import parse_actions
+from pywb.core.run.run_manager import RunManager, RunManagerStatus
+from pywb.core.run.runner import RunConfig
 from pywb.settings import SETTINGS
 from pywb.web import BrowserType
 
@@ -118,13 +119,21 @@ class _App(Cmd):
 
         # Parse the actions from the yaml file
         actions = parse_actions(actions_path)
+        notifiers = [LocalNotifier()]
+        if SETTINGS.ifttt_webhook:
+            try:
+                # As part of initialization, checks the key provided is valid
+                notifiers.append(IftttNotifier(*SETTINGS.ifttt_webhook))
+            except IftttException as ifte:
+                self.perror("IFTTT settings are invalid: %s" % str(ifte))
+                return
+
         # Get a local copy of the plugins loaded right now
         plugins = self.__plugin_manager.loaded_plugins
         run_cfg = RunConfig(actions_path=actions_path,
                             refresh_rate=SETTINGS.refresh_rate,
                             geolocation=SETTINGS.geolocation,
-                            notifier=Notifier(
-                                remote_notifications=SETTINGS.remote_notifications))
+                            notifiers=notifiers)
         # Not started only is set when the thread is new
         self.__run_manager = RunManager(
             actions=actions, plugins=plugins, browser=BrowserType[SETTINGS.browser.upper()].value, run_cfg=run_cfg)

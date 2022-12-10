@@ -5,10 +5,10 @@ from typing import Dict, List
 
 from cmd2.table_creator import Column, SimpleTable
 
-from pywb.core.action import Action
+from pywb.core.run.action import Action
 from pywb.core.logger import logger
-from pywb.core.plugin import Plugin
-from pywb.core.runner import RunConfig, Runner
+from pywb.core.plugin.plugin import Plugin
+from pywb.core.run.runner import RunConfig, Runner
 from pywb.web.browser import _Browser
 
 
@@ -122,7 +122,7 @@ class RunManager(Thread):
         runner_str = ""
         if extended:
             columns = [Column("Runner ID", width=15),
-                       Column("Action Title", width=50), Column("Plugin", width=20)]
+                       Column("Action", width=50), Column("Plugin", width=20)]
             for i in range(len(self.__runners)):
                 runner = self.__runners[i]
                 runner_data.append(

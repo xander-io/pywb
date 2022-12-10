@@ -11,15 +11,15 @@ from pywb.web import BrowserType
 class Settings(object):
     __PARAM_BROWSER = "browser"
     __PARAM_REFRESH_RATE = "refresh_rate"
-    __PARAM_REMOTE_NOTIFICATIONS = "remote_notifications"
+    __PARAM_IFTTT_WEBHOOK = "ifttt_webhook"
     __PARAM_GEOLOCATION = "geolocation"
     __PARAM_LOG_PATH = "log_path"
 
     CUSTOM_PARAMS = [__PARAM_BROWSER, __PARAM_REFRESH_RATE,
-                     __PARAM_REMOTE_NOTIFICATIONS, __PARAM_GEOLOCATION, __PARAM_LOG_PATH]
+                     __PARAM_IFTTT_WEBHOOK, __PARAM_GEOLOCATION, __PARAM_LOG_PATH]
 
     PARAMS_BOT_RESTART_REQUIRED = [
-        __PARAM_BROWSER, __PARAM_REFRESH_RATE, __PARAM_REMOTE_NOTIFICATIONS, __PARAM_GEOLOCATION]
+        __PARAM_BROWSER, __PARAM_REFRESH_RATE, __PARAM_IFTTT_WEBHOOK, __PARAM_GEOLOCATION]
 
     SAVE_FILE = path.join(path.dirname(__file__), "user_settings.json")
 
@@ -31,7 +31,7 @@ class Settings(object):
         self.__browser = "Chrome"
         self.__refresh_rate = 60
         self.__log_path = DEFAULT_LOG_PATH
-        self.__remote_notifications = False
+        self.__ifttt_webhook = []
         self.__geolocation = []
         self.__app_ctx = None
 
@@ -76,7 +76,9 @@ class Settings(object):
         app_ctx.add_settable(Settable(self.__PARAM_LOG_PATH, str, "Path to log file for web bot output",
                                       self, onchange_cb=app_ctx.change_setting))
         app_ctx.add_settable(
-            Settable(self.__PARAM_REMOTE_NOTIFICATIONS, bool, "Receive remote notifcations from pywb",
+            Settable(self.__PARAM_IFTTT_WEBHOOK, str, "Receive remote notifcations from pywb using IFTTT webhooks. "
+                     "For more info, create an account at ifttt.com and click webhooks documentation to define "
+                     "your event_name and find your account's key (format: [event_name],[key])",
                      self, onchange_cb=app_ctx.change_setting))
         app_ctx.add_settable(
             Settable(self.__PARAM_GEOLOCATION, str, "Used for emulating location (format: [lat],[long])",
@@ -98,12 +100,15 @@ class Settings(object):
         self.__app_ctx = ctx
 
     @property
-    def remote_notifications(self):
-        return self.__remote_notifications
+    def ifttt_webhook(self):
+        return self.__ifttt_webhook
 
-    @remote_notifications.setter
-    def remote_notifications(self, new_rn):
-        self.__remote_notifications = new_rn
+    @ifttt_webhook.setter
+    def ifttt_webhook(self, new_webhook: str):
+        new_webhook = new_webhook.split(",")
+        if len(new_webhook) != 2:
+            raise ValueError("Format for ifttt_webhook is [event_name] [key]")
+        self.__ifttt_webhook = new_webhook
 
     @property
     def log_path(self):

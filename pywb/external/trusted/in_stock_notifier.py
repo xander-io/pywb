@@ -3,7 +3,7 @@ from enum import Enum
 from urllib.parse import urlparse
 
 from pywb.core.logger import logger
-from pywb.core.plugin import Plugin
+from pywb.core.plugin.plugin import Plugin
 from pywb.web import By
 
 
@@ -107,7 +107,7 @@ class InStockNotifier(Plugin):
             if notification:
                 title, msg = notification
                 logger.info("**** %s: %s (%s) ****" % (title, msg, netloc))
-                self._notifier.notify(title, msg, netloc)
+                self.notify(title, msg, url=url)
 
     def __compile_results(self, urls, scrape_results) -> dict:
         stats = {}
