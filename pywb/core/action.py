@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from yaml import YAMLError, safe_load
 
 _REQUIRED_ENTRY_ITEMS = ["plugin", "urls"]

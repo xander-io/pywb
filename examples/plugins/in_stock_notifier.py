@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from enum import Enum
 from urllib.parse import urlparse
 
-from pywb.core.action import Action
 from pywb.core.logger import logger
 from pywb.core.plugin import Plugin
 from pywb.web import By
@@ -41,10 +40,11 @@ class InStockNotifier(Plugin):
     def run(self) -> None:
         super().run()
         # Replace watch and notify string strings with element types
-        self._action.kwargs[self.ACTION_KWARG_WATCH] = [By[watch_type.upper()]
-                                                        for watch_type in self._action.kwargs[self.ACTION_KWARG_WATCH]]
-        self._action.kwargs[self.ACTION_KWARG_NOTIFY_ON] = [self.NotifyOnType[notify_type.upper()]
-                                                            for notify_type in self._action.kwargs[self.ACTION_KWARG_NOTIFY_ON]]
+        self._action.kwargs[self.ACTION_KWARG_WATCH] = [By[watch_type.upper(
+        )] for watch_type in self._action.kwargs[self.ACTION_KWARG_WATCH]]
+
+        self._action.kwargs[self.ACTION_KWARG_NOTIFY_ON] = [self.NotifyOnType[notify_type.upper(
+        )] for notify_type in self._action.kwargs[self.ACTION_KWARG_NOTIFY_ON]]
 
         while not self._shut_down:
             self.__notify_changes(self._browser.scrape(
@@ -77,10 +77,12 @@ class InStockNotifier(Plugin):
 
             # NOTE: Notification works in two ways, (1) on APPEAR, the # of elements from the baseline has increased
             # (2) on DISAPPEAR, the # of elements from the baseline has decreased OR there are no elements found on the page
-            # For APPEAR, the plugin doesn't notify if elements are present but haven't increased from the baseline - don't want to misfire on irrelevant elements
+            # For APPEAR, the plugin doesn't notify if elements are present but haven't increased from the baseline
+            # don't want to misfire on irrelevant elements
             if notify_type == self.NotifyOnType.APPEAR:
                 # On appear, only send the notification once per hour if already sent
-                if stats[url] > self.__element_baseline[url] and (notification_duration >= timedelta(hours=1) or not url in self.__last_notify_time):
+                if stats[url] > self.__element_baseline[url] and (notification_duration >= timedelta(hours=1)
+                                                                  or url not in self.__last_notify_time):
                     self.__last_notify_time[url] = datetime.now()
                     notification = ("ALERT: '%s'" % self._action.title, "'%s' has appeared at %s" % (
                         text, netloc))
@@ -92,7 +94,7 @@ class InStockNotifier(Plugin):
                         text, netloc))
             elif notify_type == self.NotifyOnType.DISAPPEAR:
                 if (stats[url] < self.__element_baseline[url] or stats[url] == 0) and \
-                        (notification_duration >= timedelta(hours=1) or not url in self.__last_notify_time):
+                        (notification_duration >= timedelta(hours=1) or url not in self.__last_notify_time):
                     self.__last_notify_time[url] = datetime.now()
                     notification = ("ALERT: '%s'" % self._action.title, "'%s' disappeared at %s" % (
                         text, netloc))

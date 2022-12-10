@@ -159,8 +159,8 @@ class Settings(object):
     def browser(self, new_browser):
         try:
             # Attempt to set new browser type
-            tmp = BrowserType[new_browser.upper()]
-        except:
+            BrowserType[new_browser.upper()]
+        except KeyError:
             raise ValueError("Browser '%s' is unsupported" % new_browser)
         # Format string
         self.__browser = new_browser.capitalize()

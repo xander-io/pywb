@@ -1,7 +1,7 @@
-from os import path, walk, environ
+from os import environ, path, walk
 from random import randint
 
-from pywb import VERSION, ENVIRON_DEBUG_KEY
+from pywb import ENVIRON_DEBUG_KEY, VERSION
 
 
 def read_ascii():
@@ -10,6 +10,7 @@ def read_ascii():
     with open(ascii_path, "r", encoding="utf-8") as f:
         ascii = f.read()
     return ascii
+
 
 def generate_ascii_path():
     ascii_folder = path.join(path.dirname(__file__), "banners")
@@ -20,6 +21,7 @@ def generate_ascii_path():
     while (path.splitext(fname)[1] == ".py"):
         fname = fnames[randint(0, len(fnames) - 1)]
     return path.join(ascii_folder, fname)
+
 
 def generate_ascii_art():
     return (read_ascii() + "\n\n---%s") % (VERSION, ("\n" + "[DEBUG]"*13) if ENVIRON_DEBUG_KEY in environ else "")
