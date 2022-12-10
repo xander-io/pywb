@@ -8,7 +8,7 @@ LOG_DIR = "logs" if ENVIRON_LOG_DIR_KEY not in environ else environ[ENVIRON_LOG_
 DEFAULT_LOG_PATH = path.join(LOG_DIR, "pywb.out")
 
 
-def _init_logging(output_path=DEFAULT_LOG_PATH):
+def _init_logging(output_path=DEFAULT_LOG_PATH) -> None:
     makedirs(path.dirname(output_path), exist_ok=True)
     formatter = logging.Formatter(
         "[%(asctime)s - %(levelname)s] %(message)s")
@@ -24,11 +24,10 @@ def _init_logging(output_path=DEFAULT_LOG_PATH):
     f_handler = logging.FileHandler(output_path, "w")
     f_handler.setFormatter(formatter)
     f_logger.addHandler(f_handler)
-    return f_logger
 
 
 def set_logger_output_path(output_path):
     _init_logging(output_path=output_path)
 
 
-logger = _init_logging()
+logger = logging.getLogger(__name__)
