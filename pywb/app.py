@@ -15,11 +15,12 @@ from cmd2 import Cmd, Cmd2ArgumentParser, ansi, with_argparser
 
 from pywb.ascii.ascii import generate_ascii_art
 from pywb.core.action import parse_actions
+from pywb.core.logger import set_logger_output_path
 from pywb.core.notifier import Notifier
 from pywb.core.plugin_manager import PluginManager
 from pywb.core.run_manager import RunManager, RunManagerStatus
 from pywb.core.runner import RunConfig
-from pywb.core.settings import Settings
+from pywb.settings import SETTINGS
 from pywb.web import BrowserType
 
 
@@ -41,11 +42,14 @@ class _App(Cmd):
         None
         """
         super().__init__()
+        SETTINGS.app_ctx = self
+        SETTINGS.load()
+        set_logger_output_path(SETTINGS.log_path)
+
         # Set defaults
         self.prompt = "(pywb) > "
         self.__plugin_manager = PluginManager()
         self.__run_manager = RunManager()
-        self.__settings = Settings(self)
 
     def cmdloop(self, intro=None):
         register(self.__shutdown_bot)
@@ -117,13 +121,13 @@ class _App(Cmd):
         # Get a local copy of the plugins loaded right now
         plugins = self.__plugin_manager.loaded_plugins
         run_cfg = RunConfig(actions_path=actions_path,
-                            refresh_rate=self.__settings.refresh_rate,
-                            geolocation=self.__settings.geolocation,
+                            refresh_rate=SETTINGS.refresh_rate,
+                            geolocation=SETTINGS.geolocation,
                             notifier=Notifier(
-                                remote_notifications=self.__settings.remote_notifications))
+                                remote_notifications=SETTINGS.remote_notifications))
         # Not started only is set when the thread is new
         self.__run_manager = RunManager(
-            actions=actions, plugins=plugins, browser=BrowserType[self.__settings.browser.upper()].value, run_cfg=run_cfg)
+            actions=actions, plugins=plugins, browser=BrowserType[SETTINGS.browser.upper()].value, run_cfg=run_cfg)
 
         # Detaching run manager execution from cmd2 to respond to ctrl+d properly - using atexit.register to cleanup properly
         self.__run_manager.daemon = True
@@ -155,9 +159,11 @@ class _App(Cmd):
 
     # Callback for Cmd settables
     def change_setting(self, param, _, new_v):
-        setattr(self.__settings, param, new_v)
+        if param in SETTINGS.CUSTOM_PARAMS:
+            setattr(SETTINGS, param, new_v)
+        SETTINGS.save(param)
 
-        if self.__run_manager.status == RunManagerStatus.RUNNING and param in Settings.PARAMS_RESTART_REQUIRED:
+        if self.__run_manager.status == RunManagerStatus.RUNNING and param in Settings.BOT_RESTART_REQUIRED:
             self.pwarning(
                 "WARNING: Run 'bot restart' to apply %s changes" % param)
 
