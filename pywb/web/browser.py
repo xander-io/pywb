@@ -63,17 +63,18 @@ class _Browser(ABC):
             self.switch_to(window_handle)
             self._driver.refresh()
             self.__wait_on_loading_page()
-    
+
     def __wait_on_loading_page(self) -> None:
         page_state = ""
-        logger.debug("Waiting for {} page to be loaded.".format(self._driver.current_url))
+        logger.debug("Waiting for {} page to be loaded.".format(
+            self._driver.current_url))
         while page_state != "complete":
-            page_state = self._driver.execute_script('return document.readyState;')
+            page_state = self._driver.execute_script(
+                'return document.readyState;')
             if page_state != "complete":
                 logger.debug("Page has not loaded yet... Waiting")
             sleep(1)
         logger.debug("Page successfully loaded")
-
 
     def scrape(self, urls, bys, texts) -> list[Result]:
         if not self._window_map:

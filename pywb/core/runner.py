@@ -1,11 +1,9 @@
 from os import environ
 from threading import Thread
-from time import sleep
 from traceback import format_exc
 
 from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
-from pywb.web.chrome import Chrome
 
 
 class RunConfig(object):

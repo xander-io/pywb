@@ -13,12 +13,13 @@ class Chrome(_Browser):
         super().load_driver()
 
         options = ChromeOptions()
-        options.headless = (not ENVIRON_DEBUG_KEY in environ)
+        options.headless = (ENVIRON_DEBUG_KEY not in environ)
         # TODO: Use for taking a screenshot of the windows
         options.add_argument("--window-size=3440x1440")
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
         # Spoofing our own user agent
-        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36'
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "\
+            "Chrome/107.0.0.0 Safari/537.36"
         options.add_argument('user-agent={0}'.format(user_agent))
         self._driver = SeleniumChrome(options=options)
 
