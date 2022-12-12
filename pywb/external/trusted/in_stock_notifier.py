@@ -107,7 +107,7 @@ class InStockNotifier(Plugin):
             if notification:
                 title, msg = notification
                 logger.info("**** %s: %s (%s) ****" % (title, msg, netloc))
-                self.notify(title, msg, url=url)
+                self.notify(title=title, msg=msg, url=url)
 
     def __compile_results(self, urls, scrape_results) -> dict:
         stats = {}

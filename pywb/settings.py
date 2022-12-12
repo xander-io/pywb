@@ -6,20 +6,24 @@ from cmd2 import Cmd, Settable
 
 from pywb.core.logger import DEFAULT_LOG_PATH, set_logger_output_path
 from pywb.web import BrowserType
+from pywb.core.notify.ifttt_notifier import IftttNotifier, IftttException
 
 
 class Settings(object):
     __PARAM_BROWSER = "browser"
     __PARAM_REFRESH_RATE = "refresh_rate"
-    __PARAM_IFTTT_WEBHOOK = "ifttt_webhook"
+    __PARAM_IFTTT_WEBHOOK_EVENT_NAME = "ifttt_webhook_event_name"
+    __PARAM_IFTTT_WEBHOOK_API_KEY = "ifttt_webhook_api_key"
     __PARAM_GEOLOCATION = "geolocation"
     __PARAM_LOG_PATH = "log_path"
 
     CUSTOM_PARAMS = [__PARAM_BROWSER, __PARAM_REFRESH_RATE,
-                     __PARAM_IFTTT_WEBHOOK, __PARAM_GEOLOCATION, __PARAM_LOG_PATH]
+                     __PARAM_IFTTT_WEBHOOK_EVENT_NAME, __PARAM_IFTTT_WEBHOOK_API_KEY,
+                     __PARAM_GEOLOCATION, __PARAM_LOG_PATH]
 
     PARAMS_BOT_RESTART_REQUIRED = [
-        __PARAM_BROWSER, __PARAM_REFRESH_RATE, __PARAM_IFTTT_WEBHOOK, __PARAM_GEOLOCATION]
+        __PARAM_BROWSER, __PARAM_REFRESH_RATE, __PARAM_IFTTT_WEBHOOK_EVENT_NAME,
+        __PARAM_IFTTT_WEBHOOK_API_KEY, __PARAM_GEOLOCATION]
 
     SAVE_FILE = path.join(path.dirname(__file__), "user_settings.json")
 
@@ -31,7 +35,8 @@ class Settings(object):
         self.__browser = "Chrome"
         self.__refresh_rate = 60
         self.__log_path = DEFAULT_LOG_PATH
-        self.__ifttt_webhook = []
+        self.__ifttt_webhook_event_name = ""
+        self.__ifttt_webhook_api_key = ""
         self.__geolocation = []
         self.__app_ctx = None
 
@@ -57,11 +62,17 @@ class Settings(object):
                     pass
         return saved_settings
 
-    def save(self, param: str) -> None:
+    def save(self, params: list[str]) -> None:
         saved_settings = self.__load_from_save_file()
-        value = getattr(self, param) if param in self.CUSTOM_PARAMS else getattr(
-            self.__app_ctx, param)
-        saved_settings[param] = value
+        for param in params:
+            value = getattr(self, param) if param in self.CUSTOM_PARAMS else getattr(
+                self.__app_ctx, param)
+            if not value:
+                # Delete existing entries that are now empty values
+                if param in saved_settings:
+                    del saved_settings[param]
+            else:
+                saved_settings[param] = value
 
         with open(self.SAVE_FILE, "w") as settings_file:
             settings_file.write(dumps(saved_settings))
@@ -76,9 +87,11 @@ class Settings(object):
         app_ctx.add_settable(Settable(self.__PARAM_LOG_PATH, str, "Path to log file for web bot output",
                                       self, onchange_cb=app_ctx.change_setting))
         app_ctx.add_settable(
-            Settable(self.__PARAM_IFTTT_WEBHOOK, str, "Receive remote notifcations from pywb using IFTTT webhooks. "
-                     "For more info, create an account at ifttt.com and click webhooks documentation to define "
-                     "your event_name and find your account's key (format: [event_name],[key])",
+            Settable(self.__PARAM_IFTTT_WEBHOOK_EVENT_NAME, str, "The event name for the IFTTT applet when creating the webhook trigger",
+                     self, onchange_cb=app_ctx.change_setting))
+        app_ctx.add_settable(
+            Settable(self.__PARAM_IFTTT_WEBHOOK_API_KEY, str, "The api key for the IFTTT applet when creating the webhook trigger. "
+                     "To find this, open the documentation tab of the webhook trigger",
                      self, onchange_cb=app_ctx.change_setting))
         app_ctx.add_settable(
             Settable(self.__PARAM_GEOLOCATION, str, "Used for emulating location (format: [lat],[long])",
@@ -99,16 +112,38 @@ class Settings(object):
         self.__add_custom_settables(ctx)
         self.__app_ctx = ctx
 
-    @property
-    def ifttt_webhook(self):
-        return self.__ifttt_webhook
+    def __test_ifttt_api(self):
+        try:
+            if self.__app_ctx:
+                self.__app_ctx.poutput("Attempting to send a IFTTT notification with the current configuration...")
+            IftttNotifier.test_api(
+                self.__ifttt_webhook_api_key, event_name=self.__ifttt_webhook_event_name)
+            if self.__app_ctx:
+                self.__app_ctx.poutput("Success! Check your device\n")
+        except IftttException as ifttte:
+            self.__ifttt_webhook_api_key = self.__ifttt_webhook_event_name = ""
+            self.save([self.__PARAM_IFTTT_WEBHOOK_API_KEY, self.__PARAM_IFTTT_WEBHOOK_EVENT_NAME])
+            raise ValueError("Please try a different IFTTT configuration: " + str(ifttte))
 
-    @ifttt_webhook.setter
-    def ifttt_webhook(self, new_webhook: str):
-        new_webhook = new_webhook.split(",")
-        if len(new_webhook) != 2:
-            raise ValueError("Format for ifttt_webhook is [event_name] [key]")
-        self.__ifttt_webhook = new_webhook
+    @property
+    def ifttt_webhook_event_name(self):
+        return self.__ifttt_webhook_event_name
+
+    @ifttt_webhook_event_name.setter
+    def ifttt_webhook_event_name(self, new_event_name):
+        self.__ifttt_webhook_event_name = new_event_name
+        if self.__ifttt_webhook_api_key:
+            self.__test_ifttt_api()
+
+    @property
+    def ifttt_webhook_api_key(self):
+        return self.__ifttt_webhook_api_key
+
+    @ifttt_webhook_api_key.setter
+    def ifttt_webhook_api_key(self, new_api_key):
+        self.__ifttt_webhook_api_key = new_api_key
+        if self.__ifttt_webhook_event_name:
+            self.__test_ifttt_api()
 
     @property
     def log_path(self):

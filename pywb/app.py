@@ -117,17 +117,16 @@ class _App(Cmd):
             self.perror("The pywb service is already running!")
             return
 
+        notifiers = [LocalNotifier()]
+        if SETTINGS.ifttt_webhook_api_key and SETTINGS.ifttt_webhook_event_name:
+            # As part of initialization, checks the key provided is valid
+            notifiers.append(IftttNotifier())
+        elif SETTINGS.ifttt_webhook_api_key or SETTINGS.ifttt_webhook_event_name:
+            self.pwarning(
+                "Unable to use IFTTT: requires both event name and api key to be specified")
+
         # Parse the actions from the yaml file
         actions = parse_actions(actions_path)
-        notifiers = [LocalNotifier()]
-        if SETTINGS.ifttt_webhook:
-            try:
-                # As part of initialization, checks the key provided is valid
-                notifiers.append(IftttNotifier(*SETTINGS.ifttt_webhook))
-            except IftttException as ifte:
-                self.perror("IFTTT settings are invalid: %s" % str(ifte))
-                return
-
         # Get a local copy of the plugins loaded right now
         plugins = self.__plugin_manager.loaded_plugins
         run_cfg = RunConfig(actions_path=actions_path,
@@ -168,9 +167,9 @@ class _App(Cmd):
 
     # Callback for Cmd settables
     def change_setting(self, param, _, new_v):
-        if param in SETTINGS.CUSTOM_PARAMS:
-            setattr(SETTINGS, param, new_v)
-        SETTINGS.save(param)
+        setattr(SETTINGS, param, new_v)
+        # Cmd2 handles all errors thrown - only saves new value if successful
+        SETTINGS.save([param])
 
         if self.__run_manager.status == RunManagerStatus.RUNNING and param in SETTINGS.PARAMS_BOT_RESTART_REQUIRED:
             self.pwarning(

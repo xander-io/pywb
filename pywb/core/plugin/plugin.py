@@ -16,9 +16,9 @@ class Plugin(ABC):
     def ascii(self) -> str:
         return "=========== " + self.name + " (" + self.version + ")" + " ==========="
 
-    def notify(self, title, msg, url=None):
+    def notify(self, title: str = None, msg: str = None, url: str = None):
         for notifier in self._notifiers:
-            notifier.notify(title, msg, url=url)
+            notifier.notify(title=title, msg=msg, url=url)
 
     @abstractmethod
     def initialize(self, browser, run_cfg) -> None:

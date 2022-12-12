@@ -10,7 +10,7 @@ default_url = 'https://maker.ifttt.com/trigger/{event_name}/with/key/{key}'
 class IftttNotifier(Notifier):
     """A class to trigger IFTTT webhook events."""
 
-    def __init__(self, event_name, key, url=default_url):
+    def __init__(self, key, event_name,  url=default_url):
         """A class to trigger IFTTT webhook events.
         Parameters
         ----------
@@ -27,15 +27,13 @@ class IftttNotifier(Notifier):
             the proper values upon calling one of the trigger methods.
         """
         super().__init__()
-        self.__event_name = event_name
         if Path(key).is_file():
             with open(Path(key), 'r') as f:
                 self.__key = f.readlines()[0].strip('\n').strip('\r')
         else:
             self.__key = key
+        self.__event_name = event_name
         self.__url = url
-        # Trigger a test event to check if key is valid
-        self.__trigger('key_test_event')
 
     def __trigger(self, event_name, value1=None, value2=None, value3=None):
         """Triggers the IFTTT event defined by event_name with the JSON content
@@ -64,7 +62,7 @@ class IftttNotifier(Notifier):
             raise IftttException(response.status_code,
                                  response.text.strip('\n'))
 
-    def notify(self, title: str, message: str, url: str = None) -> None:
+    def notify(self, title: str = None, message: str = None, url: str = None) -> None:
         """Triggers an IFTTT event named 'notification' that sends a
         notification to the user via the IFTTT mobile application. The value1,
         value2 and value3 "ingredients" are mapped to the Title, Content and
@@ -74,6 +72,13 @@ class IftttNotifier(Notifier):
         """
         self.__trigger(self.__event_name, value1=title,
                        value2=message, value3=url)
+
+    @staticmethod
+    def test_api(key: str, event_name: str = None) -> None:
+        # Trigger a test event to check if key is valid
+        event_name = "__key_test_event" if event_name is None else event_name
+        test = IftttNotifier(key, event_name)
+        test.notify(title="PYWB Paired", message="Congratulations! Pywb is now paired with IFTTT")
 
 
 class IftttException(Exception):
