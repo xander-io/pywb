@@ -62,7 +62,7 @@ class IftttNotifier(Notifier):
             raise IftttException(response.status_code,
                                  response.text.strip('\n'))
 
-    def notify(self, title: str = None, message: str = None, url: str = None) -> None:
+    def notify(self, title: str, msg: str, url: str = None) -> None:
         """Triggers an IFTTT event named 'notification' that sends a
         notification to the user via the IFTTT mobile application. The value1,
         value2 and value3 "ingredients" are mapped to the Title, Content and
@@ -71,14 +71,14 @@ class IftttNotifier(Notifier):
         account.
         """
         self.__trigger(self.__event_name, value1=title,
-                       value2=message, value3=url)
+                       value2=msg, value3=url)
 
     @staticmethod
     def test_api(key: str, event_name: str = None) -> None:
         # Trigger a test event to check if key is valid
         event_name = "__key_test_event" if event_name is None else event_name
         test = IftttNotifier(key, event_name)
-        test.notify(title="PYWB Paired", message="Congratulations! Pywb is now paired with IFTTT")
+        test.notify("PYWB Paired", "Success! pywb is now paired with IFTTT")
 
 
 class IftttException(Exception):
