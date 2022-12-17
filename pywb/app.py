@@ -13,15 +13,17 @@ from time import sleep
 
 from cmd2 import Cmd, Cmd2ArgumentParser, ansi, with_argparser
 
-from pywb.ascii.ascii import generate_ascii_art
 from pywb.core.logger import set_logger_output_path
-from pywb.core.notify.ifttt_notifier import IftttException, IftttNotifier
+from pywb.core.notify.ifttt_notifier import IftttNotifier
 from pywb.core.notify.local_notifier import LocalNotifier
 from pywb.core.plugin.plugin_manager import PluginManager
 from pywb.core.run.action import parse_actions
 from pywb.core.run.run_manager import RunManager, RunManagerStatus
 from pywb.core.run.runner import RunConfig
-from pywb.settings import SETTINGS
+from pywb.settings import (PARAM_IFTTT_WEBHOOK_API_KEY,
+                           PARAM_IFTTT_WEBHOOK_EVENT_NAME,
+                           PARAMS_BOT_RESTART_REQUIRED, Settings)
+from pywb.static.ascii import generate_ascii_art
 from pywb.web import BrowserType
 
 
@@ -43,10 +45,7 @@ class _App(Cmd):
         None
         """
         super().__init__()
-        SETTINGS.app_ctx = self
-        SETTINGS.load()
-        set_logger_output_path(SETTINGS.log_path)
-
+        self.settings = Settings(self)
         # Set defaults
         self.prompt = "(pywb) > "
         self.__plugin_manager = PluginManager()
@@ -54,6 +53,9 @@ class _App(Cmd):
 
     def cmdloop(self, intro=None):
         register(self.__shutdown_bot)
+        self.settings.load()
+        set_logger_output_path(self.settings.log_path)
+
         self.poutput(intro)
         self.__plugin_manager.load_builtin_plugins()
         self.__write_ansi_table(
@@ -118,10 +120,11 @@ class _App(Cmd):
             return
 
         notifiers = [LocalNotifier()]
-        if SETTINGS.ifttt_webhook_api_key and SETTINGS.ifttt_webhook_event_name:
+        if self.settings.ifttt_webhook_api_key and self.settings.ifttt_webhook_event_name:
             # As part of initialization, checks the key provided is valid
-            notifiers.append(IftttNotifier())
-        elif SETTINGS.ifttt_webhook_api_key or SETTINGS.ifttt_webhook_event_name:
+            notifiers.append(IftttNotifier(
+                self.settings.ifttt_webhook_api_key, self.settings.ifttt_webhook_event_name))
+        elif self.settings.ifttt_webhook_api_key or self.settings.ifttt_webhook_event_name:
             self.pwarning(
                 "Unable to use IFTTT: requires both event name and api key to be specified")
 
@@ -130,19 +133,21 @@ class _App(Cmd):
         # Get a local copy of the plugins loaded right now
         plugins = self.__plugin_manager.loaded_plugins
         run_cfg = RunConfig(actions_path=actions_path,
-                            refresh_rate=SETTINGS.refresh_rate,
-                            geolocation=SETTINGS.geolocation,
+                            refresh_rate=self.settings.refresh_rate,
+                            geolocation=self.settings.geolocation,
                             notifiers=notifiers)
         # Not started only is set when the thread is new
         self.__run_manager = RunManager(
-            actions=actions, plugins=plugins, browser=BrowserType[SETTINGS.browser.upper()].value, run_cfg=run_cfg)
+            actions=actions, plugins=plugins, browser=BrowserType[self.settings.browser.upper()].value, run_cfg=run_cfg)
 
         # Detaching run manager execution from cmd2 to respond to ctrl+d properly - using atexit.register to cleanup properly
         self.__run_manager.daemon = True
         self.__run_manager.start()
-        while self.__run_manager.status != RunManagerStatus.RUNNING:
+        while self.__run_manager.status != RunManagerStatus.RUNNING and \
+                self.__run_manager.status != RunManagerStatus.STOPPED:
             sleep(1)
-        self.__write_ansi_table(self.__run_manager.generate_status_table)
+        if self.__run_manager.status == RunManagerStatus.RUNNING:
+            self.__write_ansi_table(self.__run_manager.generate_status_table)
 
     def __stop_bot_service(self, blocking=False):
         service_is_running = self.__run_manager.status >= RunManagerStatus.STARTED
@@ -165,13 +170,16 @@ class _App(Cmd):
         ansi.style_aware_write(
             stdout, table_func(**kwargs))
 
-    # Callback for Cmd settables
-    def change_setting(self, param, _, new_v):
-        setattr(SETTINGS, param, new_v)
-        # Cmd2 handles all errors thrown - only saves new value if successful
-        SETTINGS.save([param])
+    # Callback for cmd settables, cmd2 handles all errors thrown - callback only invoked if setting change is successful
+    def on_setting_change(self, param, _, new_v):
+        self.settings.save([param])
+        if self.settings.ifttt_webhook_api_key and self.settings.ifttt_webhook_event_name and \
+                (param == PARAM_IFTTT_WEBHOOK_EVENT_NAME or param == PARAM_IFTTT_WEBHOOK_API_KEY):
+            # Sucess reaching out to ifttt api endpoint
+            self.poutput(
+                "Sucessfully paired IFTTT to pywb - Check that the action was invoked from your device\n")
 
-        if self.__run_manager.status == RunManagerStatus.RUNNING and param in SETTINGS.PARAMS_BOT_RESTART_REQUIRED:
+        if self.__run_manager.status == RunManagerStatus.RUNNING and param in PARAMS_BOT_RESTART_REQUIRED:
             self.pwarning(
                 "WARNING: Run 'bot restart' to apply %s changes" % param)
 
@@ -185,5 +193,4 @@ def run():
     None
     """
 
-    app = _App()
-    exit(app.cmdloop(intro=generate_ascii_art()))
+    exit(_App().cmdloop(intro=generate_ascii_art()))

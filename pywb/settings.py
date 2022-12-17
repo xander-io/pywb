@@ -8,26 +8,27 @@ from pywb.core.logger import DEFAULT_LOG_PATH, set_logger_output_path
 from pywb.web import BrowserType
 from pywb.core.notify.ifttt_notifier import IftttNotifier, IftttException
 
+PARAM_BROWSER = "browser"
+PARAM_REFRESH_RATE = "refresh_rate"
+PARAM_IFTTT_WEBHOOK_EVENT_NAME = "ifttt_webhook_event_name"
+PARAM_IFTTT_WEBHOOK_API_KEY = "ifttt_webhook_api_key"
+PARAM_GEOLOCATION = "geolocation"
+PARAM_LOG_PATH = "log_path"
+
+CUSTOM_PARAMS = [PARAM_BROWSER, PARAM_REFRESH_RATE,
+                    PARAM_IFTTT_WEBHOOK_EVENT_NAME, PARAM_IFTTT_WEBHOOK_API_KEY,
+                    PARAM_GEOLOCATION, PARAM_LOG_PATH]
+
+PARAMS_BOT_RESTART_REQUIRED = [
+    PARAM_BROWSER, PARAM_REFRESH_RATE, PARAM_IFTTT_WEBHOOK_EVENT_NAME,
+    PARAM_IFTTT_WEBHOOK_API_KEY, PARAM_GEOLOCATION]
+
 
 class Settings(object):
-    __PARAM_BROWSER = "browser"
-    __PARAM_REFRESH_RATE = "refresh_rate"
-    __PARAM_IFTTT_WEBHOOK_EVENT_NAME = "ifttt_webhook_event_name"
-    __PARAM_IFTTT_WEBHOOK_API_KEY = "ifttt_webhook_api_key"
-    __PARAM_GEOLOCATION = "geolocation"
-    __PARAM_LOG_PATH = "log_path"
-
-    CUSTOM_PARAMS = [__PARAM_BROWSER, __PARAM_REFRESH_RATE,
-                     __PARAM_IFTTT_WEBHOOK_EVENT_NAME, __PARAM_IFTTT_WEBHOOK_API_KEY,
-                     __PARAM_GEOLOCATION, __PARAM_LOG_PATH]
-
-    PARAMS_BOT_RESTART_REQUIRED = [
-        __PARAM_BROWSER, __PARAM_REFRESH_RATE, __PARAM_IFTTT_WEBHOOK_EVENT_NAME,
-        __PARAM_IFTTT_WEBHOOK_API_KEY, __PARAM_GEOLOCATION]
 
     SAVE_FILE = path.join(path.dirname(__file__), "user_settings.json")
 
-    def __init__(self) -> None:
+    def __init__(self, app_ctx) -> None:
         # Internal - Defaults
         self.actions_path = None
 
@@ -38,12 +39,15 @@ class Settings(object):
         self.__ifttt_webhook_event_name = ""
         self.__ifttt_webhook_api_key = ""
         self.__geolocation = []
-        self.__app_ctx = None
+        self.__app_ctx = app_ctx
 
     def load(self) -> None:
+        self.__delete_cmd2_builtins()
+        self.__add_custom_settables()
+
         saved_settings = self.__load_from_save_file()
         for s_name, value in saved_settings.items():
-            if s_name in self.CUSTOM_PARAMS:
+            if s_name in CUSTOM_PARAMS:
                 ctx = self
                 # Access the private member version to avoid unnecessary checks/initialization
                 s_name = "_%s__%s" % (self.__class__.__name__, s_name)
@@ -52,7 +56,6 @@ class Settings(object):
             setattr(ctx, s_name, value)
 
     def __load_from_save_file(self) -> dict:
-        assert self.__app_ctx, "App ctx must have a value when loading settings from file"
         saved_settings = {}
         if path.exists(self.SAVE_FILE):
             with open(self.SAVE_FILE, "r") as settings_file:
@@ -65,7 +68,7 @@ class Settings(object):
     def save(self, params: list[str]) -> None:
         saved_settings = self.__load_from_save_file()
         for param in params:
-            value = getattr(self, param) if param in self.CUSTOM_PARAMS else getattr(
+            value = getattr(self, param) if param in CUSTOM_PARAMS else getattr(
                 self.__app_ctx, param)
             if not value:
                 # Delete existing entries that are now empty values
@@ -77,53 +80,42 @@ class Settings(object):
         with open(self.SAVE_FILE, "w") as settings_file:
             settings_file.write(dumps(saved_settings))
 
-    def __add_custom_settables(self, app_ctx):
+    def __add_custom_settables(self):
         # Add custom settings
-        app_ctx.add_settable(Settable(self.__PARAM_BROWSER, str, "Browser used by pywb (Supported: %s)" % str(
-            [i.name.capitalize() for i in BrowserType]), self, onchange_cb=app_ctx.change_setting))
-        app_ctx.add_settable(
-            Settable(self.__PARAM_REFRESH_RATE, int, "Refresh rate in seconds to poll actions",
-                     self, onchange_cb=app_ctx.change_setting))
-        app_ctx.add_settable(Settable(self.__PARAM_LOG_PATH, str, "Path to log file for web bot output",
-                                      self, onchange_cb=app_ctx.change_setting))
-        app_ctx.add_settable(
-            Settable(self.__PARAM_IFTTT_WEBHOOK_EVENT_NAME, str, "The event name for the IFTTT applet when creating the webhook trigger",
-                     self, onchange_cb=app_ctx.change_setting))
-        app_ctx.add_settable(
-            Settable(self.__PARAM_IFTTT_WEBHOOK_API_KEY, str, "The api key for the IFTTT applet when creating the webhook trigger. "
+        self.__app_ctx.add_settable(Settable(PARAM_BROWSER, str, "Browser used by pywb (Supported: %s)" % str(
+            [i.name.capitalize() for i in BrowserType]), self, onchange_cb=self.__app_ctx.on_setting_change))
+        self.__app_ctx.add_settable(
+            Settable(PARAM_REFRESH_RATE, int, "Refresh rate in seconds to poll actions",
+                     self, onchange_cb=self.__app_ctx.on_setting_change))
+        self.__app_ctx.add_settable(Settable(PARAM_LOG_PATH, str, "Path to log file for web bot output",
+                                      self, onchange_cb=self.__app_ctx.on_setting_change))
+        self.__app_ctx.add_settable(
+            Settable(PARAM_IFTTT_WEBHOOK_EVENT_NAME, str, "The event name for the IFTTT applet when creating the webhook trigger",
+                     self, onchange_cb=self.__app_ctx.on_setting_change))
+        self.__app_ctx.add_settable(
+            Settable(PARAM_IFTTT_WEBHOOK_API_KEY, str, "The api key for the IFTTT applet when creating the webhook trigger. "
                      "To find this, open the documentation tab of the webhook trigger",
-                     self, onchange_cb=app_ctx.change_setting))
-        app_ctx.add_settable(
-            Settable(self.__PARAM_GEOLOCATION, str, "Used for emulating location (format: [lat],[long])",
-                     self, onchange_cb=app_ctx.change_setting))
+                     self, onchange_cb=self.__app_ctx.on_setting_change))
+        self.__app_ctx.add_settable(
+            Settable(PARAM_GEOLOCATION, str, "Used for emulating location (format: [lat],[long])",
+                     self, onchange_cb=self.__app_ctx.on_setting_change))
 
         # Hacky way to save builtin settings with cmd2
-        for param, settable in app_ctx._settables.items():
-            if param not in self.CUSTOM_PARAMS:
-                settable.onchange_cb = app_ctx.change_setting
-
-    @property
-    def app_ctx(self) -> Cmd:
-        return self.__app_ctx
-
-    @app_ctx.setter
-    def app_ctx(self, ctx) -> None:
-        self.__delete_cmd2_builtins(ctx)
-        self.__add_custom_settables(ctx)
-        self.__app_ctx = ctx
+        for param, settable in self.__app_ctx._settables.items():
+            if param not in CUSTOM_PARAMS:
+                settable.onchange_cb = self.__app_ctx.on_setting_change
 
     def __test_ifttt_api(self):
         try:
-            if self.__app_ctx:
-                self.__app_ctx.poutput("Attempting to send a IFTTT notification with the current configuration...")
             IftttNotifier.test_api(
                 self.__ifttt_webhook_api_key, event_name=self.__ifttt_webhook_event_name)
-            if self.__app_ctx:
-                self.__app_ctx.poutput("Success! Check your device\n")
         except IftttException as ifttte:
+            # Erase any saved data if we fail to connect to the api
             self.__ifttt_webhook_api_key = self.__ifttt_webhook_event_name = ""
-            self.save([self.__PARAM_IFTTT_WEBHOOK_API_KEY, self.__PARAM_IFTTT_WEBHOOK_EVENT_NAME])
-            raise ValueError("Please try a different IFTTT configuration: " + str(ifttte))
+            self.save([PARAM_IFTTT_WEBHOOK_API_KEY,
+                      PARAM_IFTTT_WEBHOOK_EVENT_NAME])
+            raise ValueError(
+                "Please try a different IFTTT configuration: " + str(ifttte))
 
     @property
     def ifttt_webhook_event_name(self):
@@ -131,6 +123,9 @@ class Settings(object):
 
     @ifttt_webhook_event_name.setter
     def ifttt_webhook_event_name(self, new_event_name):
+        if self.__ifttt_webhook_event_name == new_event_name:
+            return
+
         self.__ifttt_webhook_event_name = new_event_name
         if self.__ifttt_webhook_api_key:
             self.__test_ifttt_api()
@@ -141,6 +136,9 @@ class Settings(object):
 
     @ifttt_webhook_api_key.setter
     def ifttt_webhook_api_key(self, new_api_key):
+        if self.__ifttt_webhook_api_key == new_api_key:
+            return
+
         self.__ifttt_webhook_api_key = new_api_key
         if self.__ifttt_webhook_event_name:
             self.__test_ifttt_api()
@@ -205,17 +203,14 @@ class Settings(object):
         # Format string
         self.__browser = new_browser.capitalize()
 
-    def __delete_cmd2_builtins(self, app_ctx):
+    def __delete_cmd2_builtins(self):
         delattr(Cmd, "do_alias")
         delattr(Cmd, "do_macro")
 
-        app_ctx.remove_settable("allow_style")
-        app_ctx.remove_settable("debug")
-        app_ctx.remove_settable("always_show_hint")
-        app_ctx.remove_settable("echo")
-        app_ctx.remove_settable("max_completion_items")
-        app_ctx.remove_settable("feedback_to_output")
-        app_ctx.remove_settable("quiet")
-
-
-SETTINGS = Settings()
+        self.__app_ctx.remove_settable("allow_style")
+        self.__app_ctx.remove_settable("debug")
+        self.__app_ctx.remove_settable("always_show_hint")
+        self.__app_ctx.remove_settable("echo")
+        self.__app_ctx.remove_settable("max_completion_items")
+        self.__app_ctx.remove_settable("feedback_to_output")
+        self.__app_ctx.remove_settable("quiet")
