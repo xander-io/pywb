@@ -18,7 +18,7 @@ class Plugin(ABC):
 
     def notify(self, title: str = None, msg: str = None, url: str = None):
         for notifier in self._notifiers:
-            notifier.notify(title=title, msg=msg, url=url)
+            notifier.notify(title, msg, url=url)
 
     @abstractmethod
     def initialize(self, browser, run_cfg) -> None:
