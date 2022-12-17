@@ -5,9 +5,9 @@ from typing import Dict, List
 
 from cmd2.table_creator import Column, SimpleTable
 
-from pywb.core.run.action import Action
 from pywb.core.logger import logger
 from pywb.core.plugin.plugin import Plugin
+from pywb.core.run.action import Action
 from pywb.core.run.runner import RunConfig, Runner
 from pywb.web.browser import _Browser
 
@@ -72,8 +72,9 @@ class RunManager(Thread):
         # Merge actions into plugins - One plugin instance for multiple actions
         for action in self.__actions:
             if action.plugin_name not in self.__plugins:
-                raise ValueError(
-                    "Unable to find plugin %s from loaded external plugins" % action.plugin_name)
+                logger.warning(
+                    "Unable to find plugin %s from loaded external plugins... Skipping" % action.plugin_name)
+                continue
 
             # Create a new run config with the action
             new_cfg = deepcopy(self.run_cfg)
