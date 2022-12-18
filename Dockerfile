@@ -1,6 +1,7 @@
 FROM python:latest
 ENV AM_I_IN_A_DOCKER_CONTAINER Yes
 WORKDIR /app
+VOLUME /app/data
 RUN apt update && apt install sudo wget -y
 #============================================
 # Chrome
@@ -44,7 +45,7 @@ RUN if [ -z "$CHROME_DRIVER_VERSION" ]; \
 
 ARG wheel_name
 COPY ./dist/${wheel_name} /tmp
-COPY ./examples/example_actions.yml .
+COPY ./examples/example_action.yml .
 RUN pip3 install /tmp/${wheel_name}
 RUN rm /tmp/${wheel_name}
 CMD "pywb"
