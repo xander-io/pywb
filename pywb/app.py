@@ -10,6 +10,7 @@ from argparse import Namespace
 from atexit import register
 from sys import exit, stdout
 from time import sleep
+from os import environ
 
 from cmd2 import Cmd, Cmd2ArgumentParser, ansi, with_argparser
 
@@ -25,6 +26,7 @@ from pywb.settings import (PARAM_IFTTT_WEBHOOK_API_KEY,
                            PARAMS_BOT_RESTART_REQUIRED, Settings)
 from pywb.static.ascii import generate_ascii_art
 from pywb.web import BrowserType
+from pywb import ENVIRON_DOCKER_CONTAINER_KEY
 
 
 class _App(Cmd):
@@ -127,6 +129,9 @@ class _App(Cmd):
         elif self.settings.ifttt_webhook_api_key or self.settings.ifttt_webhook_event_name:
             self.pwarning(
                 "Unable to use IFTTT: requires both event name and api key to be specified")
+        elif ENVIRON_DOCKER_CONTAINER_KEY in environ:
+            self.pwarning(
+                "DOCKER: Notifications will not display unless integrated with IFTTT - Run 'set' for more info")
 
         # Parse the actions from the yaml file
         actions = parse_actions(actions_path)

@@ -1,5 +1,7 @@
+# NOTE: Please verify python3, pip3, docker, and gzip are installed on the system prior to building."
+
 try 
-{
+{    
     $PYTHON = &{python3 -V; pip3 -V}
     Write-Output $p "Building python module..."
     Set-Location -Path $PSScriptRoot/../
@@ -22,6 +24,6 @@ try
 } 
 catch 
 {
-    Write-Output "Build Error:" $_
+    Write-Output "Build ERROR:" $_
 }
 

@@ -1,12 +1,13 @@
 from json import dumps, load
 from json.decoder import JSONDecodeError
-from os import path
+from os import path, environ, sep
 
 from cmd2 import Cmd, Settable
 
 from pywb.core.logger import DEFAULT_LOG_PATH, set_logger_output_path
 from pywb.web import BrowserType
 from pywb.core.notify.ifttt_notifier import IftttNotifier, IftttException
+from pywb import ENVIRON_DOCKER_CONTAINER_KEY
 
 PARAM_BROWSER = "browser"
 PARAM_REFRESH_RATE = "refresh_rate"
@@ -16,8 +17,8 @@ PARAM_GEOLOCATION = "geolocation"
 PARAM_LOG_PATH = "log_path"
 
 CUSTOM_PARAMS = [PARAM_BROWSER, PARAM_REFRESH_RATE,
-                    PARAM_IFTTT_WEBHOOK_EVENT_NAME, PARAM_IFTTT_WEBHOOK_API_KEY,
-                    PARAM_GEOLOCATION, PARAM_LOG_PATH]
+                 PARAM_IFTTT_WEBHOOK_EVENT_NAME, PARAM_IFTTT_WEBHOOK_API_KEY,
+                 PARAM_GEOLOCATION, PARAM_LOG_PATH]
 
 PARAMS_BOT_RESTART_REQUIRED = [
     PARAM_BROWSER, PARAM_REFRESH_RATE, PARAM_IFTTT_WEBHOOK_EVENT_NAME,
@@ -26,7 +27,8 @@ PARAMS_BOT_RESTART_REQUIRED = [
 
 class Settings(object):
 
-    SAVE_FILE = path.join(path.dirname(__file__), "user_settings.json")
+    SAVE_FILE = path.join(sep, "app", "data", "user_settings.json") \
+        if ENVIRON_DOCKER_CONTAINER_KEY in environ else path.join(path.dirname(__file__), "user_settings.json")
 
     def __init__(self, app_ctx) -> None:
         # Internal - Defaults
@@ -88,7 +90,7 @@ class Settings(object):
             Settable(PARAM_REFRESH_RATE, int, "Refresh rate in seconds to poll actions",
                      self, onchange_cb=self.__app_ctx.on_setting_change))
         self.__app_ctx.add_settable(Settable(PARAM_LOG_PATH, str, "Path to log file for web bot output",
-                                      self, onchange_cb=self.__app_ctx.on_setting_change))
+                                             self, onchange_cb=self.__app_ctx.on_setting_change))
         self.__app_ctx.add_settable(
             Settable(PARAM_IFTTT_WEBHOOK_EVENT_NAME, str, "The event name for the IFTTT applet when creating the webhook trigger",
                      self, onchange_cb=self.__app_ctx.on_setting_change))

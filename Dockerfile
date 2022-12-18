@@ -45,7 +45,7 @@ RUN if [ -z "$CHROME_DRIVER_VERSION" ]; \
 
 ARG wheel_name
 COPY ./dist/${wheel_name} /tmp
-COPY ./examples/example_action.yml .
+COPY ./examples/example_action.yml ./examples/
 RUN pip3 install /tmp/${wheel_name}
 RUN rm /tmp/${wheel_name}
 CMD "pywb"

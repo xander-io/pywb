@@ -1,7 +1,4 @@
-
-from os import path
 from platform import system
-from time import sleep
 
 try:
     # Windows?

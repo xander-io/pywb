@@ -1,14 +1,10 @@
 #!/bin/bash
 
+# NOTE: Please verify python3, pip3, docker, and gzip are installed on the system prior to building."
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd ${DIR}/../
 rm -r ./dist/* &> /dev/null
-
-if ! command -v pip3 &> /dev/null || ! command -v python3 &> /dev/null || ! command -v docker &> /dev/null || ! command -v gzip &> /dev/null 
-then
-    echo "ERROR: Please verify python3, pip3, docker, and gzip are installed on the system before building."
-    exit 1
-fi
 
 echo "Building python module..."
 pip3 install wheel --quiet
