@@ -1,11 +1,11 @@
 #!/bin/bash
 
-if [ -x "$(command -v docker)" ]; then
-    echo "Importing Docker image..."
-    docker load -i pywb_docker.tgz
-    echo "Copying executable file to PATH..."
-    run_pywb.ps1 C:\Windows\System32\pywb.ps1
-else
+sudo=''
+if (( $EUID != 0 )); then
+    sudo="sudo"
+fi
+
+if ! [ -x "$(command -v docker)" ]; then
     echo "Downloading Docker Installer..."
     sudo apt-get update
     sudo apt-get install \
@@ -22,3 +22,9 @@ else
     sudo apt-get update
     sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 fi
+
+echo "Importing Docker image..."
+docker load -i pywb_docker.tgz
+echo "Copying executable file to PATH..."
+$sudo cp run_pywb.sh /usr/local/bin/pywb
+echo "DONE!"
