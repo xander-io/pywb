@@ -92,7 +92,8 @@ class Settings(object):
         self.__app_ctx.add_settable(Settable(PARAM_LOG_PATH, str, "Path to log file for web bot output",
                                              self, onchange_cb=self.__app_ctx.on_setting_change))
         self.__app_ctx.add_settable(
-            Settable(PARAM_IFTTT_WEBHOOK_EVENT_NAME, str, "The event name for the IFTTT applet when creating the webhook trigger",
+            Settable(PARAM_IFTTT_WEBHOOK_EVENT_NAME, str, "The event name for the IFTTT applet when "
+                     "creating the webhook trigger",
                      self, onchange_cb=self.__app_ctx.on_setting_change))
         self.__app_ctx.add_settable(
             Settable(PARAM_IFTTT_WEBHOOK_API_KEY, str, "The api key for the IFTTT applet when creating the webhook trigger. "
