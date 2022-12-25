@@ -12,8 +12,8 @@ python3 setup.py clean --all
 python3 setup.py bdist_wheel
 
 echo "Building Docker image..."
-PYWB_WHEEL="$( ls -AU ./dist | head -1 )"
-docker build -t pywb --build-arg wheel_name=$PYWB_WHEEL .
+PYWB_WHEEL_NAME="$( ls -AU ./dist | head -1 )"
+docker build -t pywb --build-arg wheel_name=$PYWB_WHEEL_NAME .
 echo "Saving Docker image..."
 docker save pywb:latest -o ./dist/pywb_docker.tar
 echo "Compressing as a tgz..."
