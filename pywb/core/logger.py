@@ -24,6 +24,7 @@ def _init_logging(output_path=DEFAULT_LOG_PATH) -> None:
     f_handler = logging.FileHandler(output_path, "w")
     f_handler.setFormatter(formatter)
     f_logger.addHandler(f_handler)
+    f_logger.propagate = False
 
 
 def set_logger_output_path(output_path):
