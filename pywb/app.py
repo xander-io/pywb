@@ -8,12 +8,13 @@ Functions
 
 from argparse import Namespace
 from atexit import register
+from os import environ
 from sys import exit, stdout
 from time import sleep
-from os import environ
 
 from cmd2 import Cmd, Cmd2ArgumentParser, ansi, with_argparser
 
+from pywb import ENVIRON_DOCKER_CONTAINER_KEY
 from pywb.core.logger import set_logger_output_path
 from pywb.core.notify.ifttt_notifier import IftttNotifier
 from pywb.core.notify.local_notifier import LocalNotifier
@@ -26,7 +27,6 @@ from pywb.settings import (PARAM_IFTTT_WEBHOOK_API_KEY,
                            PARAMS_BOT_RESTART_REQUIRED, Settings)
 from pywb.static.ascii import generate_ascii_art
 from pywb.web import BrowserType
-from pywb import ENVIRON_DOCKER_CONTAINER_KEY
 
 
 class _App(Cmd):
@@ -50,6 +50,8 @@ class _App(Cmd):
         self.settings = Settings(self)
         # Set defaults
         self.prompt = "(pywb) > "
+        self.__cmd2_sigint_handler = self.sigint_handler
+        self.sigint_handler = self.__sigint_handler
         self.__plugin_manager = PluginManager()
         self.__run_manager = RunManager()
 
@@ -63,13 +65,18 @@ class _App(Cmd):
         self.__write_ansi_table(
             self.__plugin_manager.generate_loaded_plugins_table)
 
-        # Custom cmdloop that catches multiple keyboard interrupts
         while True:
             try:
                 super().cmdloop(intro="")
                 break
             except KeyboardInterrupt:
+                # Catches and handles multiple keyboard interrupts
                 self.poutput("^C")
+
+    def __sigint_handler(self, *args, **kwargs):
+        # Respond to any ctrl + c as a shortcut for stopping the bot service
+        self.__stop_bot_service()
+        self.__cmd2_sigint_handler(*args, **kwargs)
 
     def __shutdown_bot(self):
         self.__stop_bot_service(blocking=True)
@@ -158,7 +165,7 @@ class _App(Cmd):
         service_is_running = self.__run_manager.status >= RunManagerStatus.STARTED
         if service_is_running:
             self.__run_manager.shut_down()
-            self.poutput("Stop signaled for pywb service...")
+            self.poutput("Stopping the pywb service...")
             if blocking:
                 self.__run_manager.join()
             self.__write_ansi_table(
