@@ -1,5 +1,5 @@
 
-from os import environ
+from os import environ, devnull
 
 from selenium.webdriver import Chrome as SeleniumChrome
 from selenium.webdriver import ChromeOptions
@@ -23,7 +23,7 @@ class Chrome(_Browser):
         user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "\
             "Chrome/107.0.0.0 Safari/537.36"
         options.add_argument('user-agent={0}'.format(user_agent))
-        self._driver = SeleniumChrome(options=options)
+        self._driver = SeleniumChrome(options=options, service_log_path=devnull)
 
     def emulate_location(self, g_lat, g_long) -> None:
         super().emulate_location(g_lat, g_long)
