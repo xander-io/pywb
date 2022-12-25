@@ -71,7 +71,7 @@ class _App(Cmd):
                 break
             except KeyboardInterrupt:
                 # Catches and handles multiple keyboard interrupts
-                self.poutput("^C")
+                pass
 
     def __sigint_handler(self, *args, **kwargs):
         # Respond to any ctrl + c as a shortcut for stopping the bot service
