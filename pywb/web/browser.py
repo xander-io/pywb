@@ -1,17 +1,23 @@
 from abc import ABC, abstractmethod
-from os import environ, mkdir, path
+from os import mkdir, path
 from time import sleep
-from urllib.parse import urlparse
 
-from pywb import ENVIRON_DEBUG_KEY
 from pywb.core.logger import logger
 from pywb.web.result import Result
+from selenium.webdriver.remote.remote_connection import \
+    LOGGER as seleniumLogger
+from urllib3.connectionpool import log as urllibLogger
+
+# Hacky way to prevent selenium/urllib logging from showing in the console
+seleniumLogger.disabled = True
+urllibLogger.disabled = True
 
 
 class _Browser(ABC):
 
     def __init__(self) -> None:
         super().__init__()
+
         self._driver = None
         self._window_map = {}
 
@@ -95,9 +101,6 @@ class _Browser(ABC):
             self.switch_to(window_handle)
             elements = self._driver.find_elements("xpath", xpath)
             for e in elements:
-                if ENVIRON_DEBUG_KEY in environ:
-                    self.__save_element_image(
-                        e.screenshot_as_png, "%s-%s.png" % (urlparse(urls[i]).netloc, window_handle))
                 scrape_results.append(Result(e, urls[i], window_handle, self))
         return scrape_results
 

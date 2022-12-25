@@ -16,7 +16,7 @@ class PluginManager(object):
 
     def load_builtin_plugins(self) -> None:
         builtin_path = path.join(
-            Path(__file__).parent.resolve(), "..", "external", "builtin")
+            Path(__file__).parent.resolve(), "..", "..", "external", "trusted")
         self.load_plugins(builtin_path)
 
     def load_plugins(self, plugin_path: str) -> int:

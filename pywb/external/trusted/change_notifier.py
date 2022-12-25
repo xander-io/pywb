@@ -3,11 +3,11 @@ from enum import Enum
 from urllib.parse import urlparse
 
 from pywb.core.logger import logger
-from pywb.core.plugin import Plugin
+from pywb.core.plugin.plugin import Plugin
 from pywb.web import By
 
 
-class InStockNotifier(Plugin):
+class ChangeNotifier(Plugin):
     VERSION = "0.1"
 
     ACTION_KWARG_WATCH = "watch"
@@ -77,8 +77,8 @@ class InStockNotifier(Plugin):
 
             # NOTE: Notification works in two ways, (1) on APPEAR, the # of elements from the baseline has increased
             # (2) on DISAPPEAR, the # of elements from the baseline has decreased OR there are no elements found on the page
-            # For APPEAR, the plugin doesn't notify if elements are present but haven't increased from the baseline
-            # don't want to misfire on irrelevant elements
+            # For APPEAR, the plugin is designed to not notify if elements are present but not greater than the baseline
+            # This is to avoid notifying on irrelevant elements
             if notify_type == self.NotifyOnType.APPEAR:
                 # On appear, only send the notification once per hour if already sent
                 if stats[url] > self.__element_baseline[url] and (notification_duration >= timedelta(hours=1)
@@ -105,9 +105,8 @@ class InStockNotifier(Plugin):
                     notification = ("NOTICE: '%s'" % self._action.title, "'%s' has reappeared at %s" % (
                         text, netloc))
             if notification:
-                title, msg = notification
-                logger.info("**** %s: %s (%s) ****" % (title, msg, netloc))
-                self._notifier.notify(title, msg, netloc)
+                logger.info("**** %s: %s (%s) ****" % (*notification, netloc))
+                self.notify(*notification, url=url)
 
     def __compile_results(self, urls, scrape_results) -> dict:
         stats = {}
@@ -123,4 +122,4 @@ class InStockNotifier(Plugin):
         return stats
 
 
-plugin = InStockNotifier
+plugin = ChangeNotifier

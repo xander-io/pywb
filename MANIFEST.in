@@ -1,1 +1,1 @@
-include pywb/ascii/banners/*.txt
+include pywb/static/banners/*.txt

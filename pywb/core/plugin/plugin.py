@@ -11,10 +11,14 @@ class Plugin(ABC):
         self.version = version
         self._shut_down = False
         self._run_initialized = False
-        self._action = self._refresh_rate = self._notifier = self._browser = None
+        self._action = self._refresh_rate = self._notifiers = self._browser = None
 
     def ascii(self) -> str:
         return "=========== " + self.name + " (" + self.version + ")" + " ==========="
+
+    def notify(self, title: str = None, msg: str = None, url: str = None):
+        for notifier in self._notifiers:
+            notifier.notify(title, msg, url=url)
 
     @abstractmethod
     def initialize(self, browser, run_cfg) -> None:
@@ -22,7 +26,7 @@ class Plugin(ABC):
 
         self._action = run_cfg.action
         self._refresh_rate = run_cfg.refresh_rate
-        self._notifier = run_cfg.notifier
+        self._notifiers = run_cfg.notifiers
         self._browser = browser
 
         self._browser.load_driver()

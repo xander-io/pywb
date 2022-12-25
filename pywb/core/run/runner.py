@@ -7,12 +7,12 @@ from pywb.core.logger import logger
 
 
 class RunConfig(object):
-    def __init__(self, action=None, actions_path=None, refresh_rate=None, geolocation=None, notifier=None) -> None:
+    def __init__(self, action=None, actions_path=None, refresh_rate=None, geolocation=None, notifiers=None) -> None:
         self.action = action
         self.actions_path = actions_path
         self.refresh_rate = refresh_rate
         self.geolocation = geolocation
-        self.notifier = notifier
+        self.notifiers = notifiers
 
 
 class Runner(Thread):

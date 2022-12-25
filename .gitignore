@@ -130,3 +130,7 @@ dmypy.json
 
 #vscode
 .vscode
+
+# custom additions
+/logs
+user_settings.json
