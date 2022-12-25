@@ -6,5 +6,5 @@ class Notifier(ABC):
         super().__init__()
 
     @abstractmethod
-    def notify(self, title: str, message: str, url: str = None) -> None:
+    def notify(self, title: str, message: str, url: str = "") -> None:
         pass

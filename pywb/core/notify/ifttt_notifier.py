@@ -49,11 +49,11 @@ class IftttNotifier(Notifier):
             will be passed as "ingredients" to the Action of the IFTTT Recipe.
         """
         body = {}
-        if value1 is not None:
+        if value1:
             body['value1'] = value1
-        if value2 is not None:
+        if value2:
             body['value2'] = value2
-        if value3 is not None:
+        if value3:
             body['value3'] = value3
         url = self.__url.format(event_name=event_name, key=self.__key)
         response = post(url, json=body)
@@ -62,7 +62,7 @@ class IftttNotifier(Notifier):
             raise IftttException(response.status_code,
                                  response.text.strip('\n'))
 
-    def notify(self, title: str, msg: str, url: str = None) -> None:
+    def notify(self, title: str, msg: str, url: str = "") -> None:
         """Triggers an IFTTT event named 'notification' that sends a
         notification to the user via the IFTTT mobile application. The value1,
         value2 and value3 "ingredients" are mapped to the Title, Content and
